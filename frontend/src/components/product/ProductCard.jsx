@@ -15,7 +15,7 @@ const CATEGORY_ICONS = {
   default: '🛍️',
 }
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, variant = 'carousel' }) {
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
   const { addItem } = useCartStore()
@@ -23,6 +23,7 @@ export default function ProductCard({ product }) {
   const inStock = product.stock > 0
   const hasSizes = product.attributes?.sizes && product.attributes.sizes.length > 0
   const hasColors = product.attributes?.colors && product.attributes.colors.length > 0
+  const isGrid = variant === 'grid'
 
   const getCategoryIcon = () => {
     const category = product.category?.toLowerCase() || 'default'
@@ -47,18 +48,24 @@ export default function ProductCard({ product }) {
   }
 
   return (
-    <div className="flex-shrink-0 w-72 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden border border-gray-200 dark:border-gray-700">
-      {/* Header with merchant badge */}
-      <div className="px-4 pt-3 flex items-center justify-between">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-          {product.merchant_name}
-        </span>
-        <span className="text-2xl">{getCategoryIcon()}</span>
-      </div>
+    <div
+  className={`${isGrid ? 'w-full' : 'flex-shrink-0 w-72'} bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-200/70 dark:border-gray-700`}
+>
+{/* Header */}
+<div className="px-4 pt-4 flex items-start justify-between gap-3">
+  <div className="min-w-0">
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200">
+      {product.merchant_name}
+    </span>
+  </div>
+  <div className="h-10 w-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-xl border border-gray-200/70 dark:border-gray-600">
+    {getCategoryIcon()}
+  </div>
+</div>
 
       {/* Product Info */}
-      <div className="px-4 pt-3 pb-2">
-        <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-sm mb-2">
+      <div className="px-4 pt-4 pb-3">
+        <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 text-[13px] leading-snug mb-2">
           {product.name}
         </h3>
 
@@ -66,7 +73,7 @@ export default function ProductCard({ product }) {
         <div className="flex items-center gap-1 mb-2">
           <div className="flex text-sm">{renderStars(product.rating || 0)}</div>
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            ({product.rating?.toFixed(1) || 'N/A'})
+            {product.rating ? `(${product.rating.toFixed(1)})` : '(New)'}
           </span>
         </div>
 
@@ -76,9 +83,15 @@ export default function ProductCard({ product }) {
         </p>
 
         {/* Stock Status */}
-        <p className={`text-xs font-medium mb-3 ${inStock ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <span
+          className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-medium mb-3 ${
+            inStock
+              ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+              : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+          }`}
+        >
           {inStock ? `${product.stock} in stock` : 'Out of stock'}
-        </p>
+        </span>
 
         {/* Size Selector */}
         {hasSizes && (
