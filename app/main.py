@@ -245,7 +245,7 @@ async def update_cart_item(user_id: str, product_id: str, req: UpdateCartRequest
 # ──────────────────────────── Checkout ────────────────────────────
 
 @app.post("/api/checkout/create-session", response_model=CheckoutResponse)
-async def create_checkout_session(req: CheckoutRequest):
+async def create_checkout_session(req: CheckoutRequest, request: Request):
     """Create a Stripe Checkout Session for the user's cart."""
     if not executor:
         raise HTTPException(503, "Service not ready")
@@ -308,12 +308,14 @@ async def create_checkout_session(req: CheckoutRequest):
                 "color": item.selected_color,
             })
 
+        public_base_url = settings.PUBLIC_BASE_URL.rstrip("/") if settings.PUBLIC_BASE_URL else str(request.base_url).rstrip("/")
+
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
-            success_url="http://localhost:3001/checkout/success?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="http://localhost:3001/checkout/cancel",
+            success_url=f"{public_base_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{public_base_url}/checkout/cancel",
             metadata={
                 "user_id": req.user_id,
                 "shipping_name": req.shipping_name,

@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     MAX_REACT_ITERATIONS: int = 5
     TAX_RATE: float = 0.08
     ENVIRONMENT: str = "development"
+    PUBLIC_BASE_URL: str = ""
 
     class Config:
         env_file = str(_ENV_FILE)

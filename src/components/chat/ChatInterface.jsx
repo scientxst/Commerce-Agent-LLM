@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Send, Sparkles, Search, PanelRightOpen } from 'lucide-react'
 import useCartStore from '../../stores/cartStore'
+import { sendChatMessage } from '../../lib/api'
 import Message from './Message'
 import ProductGrid from '../product/ProductGrid'
 
@@ -18,154 +19,100 @@ export default function ChatInterface() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
 
   const messagesEndRef = useRef(null)
-  const wsRef = useRef(null)
   const sessionIdRef = useRef(null)
-  const reconnectTimeoutRef = useRef(null)
   const inputRef = useRef(null)
 
-  // Generate stable session ID
   useEffect(() => {
     if (!sessionIdRef.current) {
-      sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
     }
   }, [])
 
-  // WebSocket connection
-  useEffect(() => {
-    const connectWebSocket = () => {
-      if (!userId || !sessionIdRef.current) return
-
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${wsProtocol}//localhost:8000/ws/chat/${userId}/${sessionIdRef.current}`
-
-      try {
-        const ws = new WebSocket(wsUrl)
-
-        ws.onopen = () => {
-          setIsConnected(true)
-          console.log('WebSocket connected')
-        }
-
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          handleMessage(data)
-        }
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error)
-          setIsConnected(false)
-        }
-
-        ws.onclose = () => {
-          setIsConnected(false)
-          console.log('WebSocket disconnected, reconnecting in 3s...')
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
-        }
-
-        wsRef.current = ws
-      } catch (error) {
-        console.error('Failed to connect WebSocket:', error)
-        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
-      }
-    }
-
-    connectWebSocket()
-
-    return () => {
-      if (wsRef.current) wsRef.current.close()
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
-    }
-  }, [userId])
-
-  // Handle WebSocket messages
-  const handleMessage = (data) => {
-    if (data.type === 'text') {
-      setMessages((prev) => {
-        const lastMessage = prev[prev.length - 1]
-        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.isStreaming) {
-          return prev.map((msg, idx) =>
-            idx === prev.length - 1 ? { ...msg, content: msg.content + data.content } : msg
-          )
-        }
-        return [
-          ...prev,
-          {
-            id: `msg_${Date.now()}`,
-            role: 'assistant',
-            content: data.content,
-            products: [],
-            isStreaming: true,
-          },
-        ]
-      })
-    } else if (data.type === 'products') {
-      setMessages((prev) => {
-        const lastMessage = prev[prev.length - 1]
-        if (lastMessage && lastMessage.role === 'assistant') {
-          return prev.map((msg, idx) => (idx === prev.length - 1 ? { ...msg, products: data.products } : msg))
-        }
-        return prev
-      })
-    } else if (data.type === 'done') {
-      setMessages((prev) => prev.map((msg, idx) => (idx === prev.length - 1 ? { ...msg, isStreaming: false } : msg)))
-      setIsLoading(false)
-      refreshCart()
-    }
-  }
-
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const latestProducts = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i]
-      if (m?.role === 'assistant' && m?.products?.length) return m.products
-    }
-    return []
+    const assistantMessages = [...messages].reverse().find((m) => m.role === 'assistant' && m.products?.length)
+    return assistantMessages?.products || []
   }, [messages])
 
   const lastUserQuery = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i]
-      if (m?.role === 'user' && m?.content) return m.content
-    }
-    return ''
+    const last = [...messages].reverse().find((m) => m.role === 'user')
+    return last?.content || ''
   }, [messages])
 
+  const isReady = Boolean(userId && sessionIdRef.current)
   const showResultsPanel = useMemo(() => messages.length > 0, [messages.length])
 
-  const sendMessage = () => {
-    if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+  const sendMessage = async () => {
+    const trimmed = input.trim()
+    if (!trimmed || isLoading || !userId || !sessionIdRef.current) return
 
     const userMessage = {
       id: `msg_${Date.now()}`,
       role: 'user',
-      content: input,
+      content: trimmed,
       products: [],
       isStreaming: false,
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const assistantMessageId = `msg_${Date.now()}_assistant`
+
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+      {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        products: [],
+        isStreaming: true,
+      },
+    ])
     setInput('')
     setIsLoading(true)
 
-    wsRef.current.send(
-      JSON.stringify({
-        type: 'message',
-        content: input,
-      })
-    )
+    try {
+      const response = await sendChatMessage(userId, sessionIdRef.current, trimmed)
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: response?.message || 'Sorry, I could not generate a response.',
+                products: response?.product_cards || [],
+                isStreaming: false,
+              }
+            : msg
+        )
+      )
+      await refreshCart()
+    } catch (error) {
+      console.error('Chat request failed:', error)
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: 'The assistant is unavailable right now. Check your Vercel environment variables and try again.',
+                products: [],
+                isStreaming: false,
+              }
+            : msg
+        )
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      void sendMessage()
     }
   }
 
@@ -182,14 +129,12 @@ export default function ChatInterface() {
           : 'h-full flex items-center justify-center'
       }
     >
-      {/* Left: Assistant */}
       <div className={showResultsPanel ? 'lg:col-span-7 xl:col-span-8 h-full' : 'w-full max-w-4xl'}>
         <div
           className={`rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col overflow-hidden ${
             showResultsPanel ? 'h-full' : 'min-h-[70vh]'
           }`}
         >
-          {/* Panel Header */}
           <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-sm">
@@ -204,18 +149,17 @@ export default function ChatInterface() {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                  isConnected
+                  isReady
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+                    : 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800'
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                {isConnected ? 'Connected' : 'Disconnected'}
+                <span className={`h-2 w-2 rounded-full ${isReady ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                {isReady ? 'Ready' : 'Starting'}
               </span>
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto chat-scroll px-5 py-4 space-y-4">
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center">
@@ -252,7 +196,6 @@ export default function ChatInterface() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Composer */}
           <div className="border-t border-gray-200/70 dark:border-gray-700 p-4">
             <div className="flex items-end gap-3">
               <div className="flex-1">
@@ -262,7 +205,7 @@ export default function ChatInterface() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Try: ‘red shoes size 10 under $90’"
-                  disabled={!isConnected || isLoading}
+                  disabled={!isReady || isLoading}
                   rows={2}
                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                 />
@@ -270,19 +213,18 @@ export default function ChatInterface() {
               </div>
 
               <button
-                onClick={sendMessage}
-                disabled={!isConnected || isLoading || !input.trim()}
+                onClick={() => void sendMessage()}
+                disabled={!isReady || isLoading || !input.trim()}
                 className="shrink-0 inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-2xl font-medium hover:from-indigo-700 hover:to-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={18} />
-                Send
+                {isLoading ? 'Sending...' : 'Send'}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right: Results (hidden until first query) */}
       {showResultsPanel && (
         <div className="lg:col-span-5 xl:col-span-4 h-full">
           <div className="h-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col overflow-hidden">
