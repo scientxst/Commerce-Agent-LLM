@@ -1,4 +1,5 @@
 # Vercel deployment notes
+# change
 
 ## What changed
 - Frontend chat now uses `POST /api/chat` instead of a browser WebSocket connection.
