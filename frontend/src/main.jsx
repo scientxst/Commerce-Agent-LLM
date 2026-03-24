@@ -13,7 +13,7 @@ const msalInstance = new PublicClientApplication({
   auth: {
     clientId: import.meta.env.VITE_MICROSOFT_CLIENT_ID || 'placeholder-microsoft-client-id',
     authority: 'https://login.microsoftonline.com/common',
-    redirectUri: window.location.origin,
+    redirectUri: import.meta.env.VITE_APP_URL || window.location.origin,
   },
   cache: {
     cacheLocation: 'sessionStorage',
