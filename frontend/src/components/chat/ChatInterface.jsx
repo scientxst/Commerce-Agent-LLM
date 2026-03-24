@@ -183,7 +183,7 @@ export default function ChatInterface() {
       }
     >
       {/* Left: Assistant */}
-      <div className={showResultsPanel ? 'lg:col-span-7 xl:col-span-8 h-full' : 'w-full max-w-4xl'}>
+      <div className={showResultsPanel ? 'lg:col-span-6 xl:col-span-7 h-full' : 'w-full max-w-4xl'}>
         <div
           className={`rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col overflow-hidden ${
             showResultsPanel ? 'h-full' : 'min-h-[70vh]'
@@ -284,7 +284,7 @@ export default function ChatInterface() {
 
       {/* Right: Results (hidden until first query) */}
       {showResultsPanel && (
-        <div className="lg:col-span-5 xl:col-span-4 h-full">
+        <div className="lg:col-span-6 xl:col-span-5 h-full">
           <div className="h-full rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-2">

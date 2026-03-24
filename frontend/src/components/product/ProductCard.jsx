@@ -101,6 +101,7 @@ const CATEGORY_ICONS = {
 export default function ProductCard({ product, variant = 'carousel' }) {
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
+  const [imgError, setImgError] = useState(false)
   const { addItem } = useCartStore()
 
   const inStock = product.stock > 0
@@ -134,15 +135,28 @@ export default function ProductCard({ product, variant = 'carousel' }) {
     <div
   className={`${isGrid ? 'w-full' : 'flex-shrink-0 w-72'} bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-200/70 dark:border-gray-700`}
 >
+{/* Product Image */}
+<div className="w-full h-44 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+  {product.image_url && !imgError ? (
+    <img
+      src={product.image_url}
+      alt={product.name}
+      onError={() => setImgError(true)}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center text-5xl">
+      {getCategoryIcon()}
+    </div>
+  )}
+</div>
+
 {/* Header */}
-<div className="px-4 pt-4 flex items-start justify-between gap-3">
+<div className="px-4 pt-3 flex items-start justify-between gap-3">
   <div className="min-w-0">
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200">
       {product.merchant_name}
     </span>
-  </div>
-  <div className="h-10 w-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-xl border border-gray-200/70 dark:border-gray-600">
-    {getCategoryIcon()}
   </div>
 </div>
 
