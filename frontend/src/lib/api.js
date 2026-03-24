@@ -1,4 +1,4 @@
-const API_URL = '';  // proxy handles it
+const API_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 export async function fetchProducts(category, limit = 20) {
   const params = new URLSearchParams();

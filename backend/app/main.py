@@ -312,8 +312,8 @@ async def create_checkout_session(req: CheckoutRequest):
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
-            success_url="http://localhost:3001/checkout/success?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="http://localhost:3001/checkout/cancel",
+            success_url=f"{settings.FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_URL}/checkout/cancel",
             metadata={
                 "user_id": req.user_id,
                 "shipping_name": req.shipping_name,

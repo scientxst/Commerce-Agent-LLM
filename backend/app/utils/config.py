@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     MICROSOFT_CLIENT_ID: str = ""
 
+    # Frontend URL (used for Stripe redirect URLs)
+    FRONTEND_URL: str = "http://localhost:3000"
+
     # Application
     MAX_CONTEXT_TOKENS: int = 8000
     MAX_REACT_ITERATIONS: int = 5
