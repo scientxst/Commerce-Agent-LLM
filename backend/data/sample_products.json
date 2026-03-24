@@ -17,7 +17,7 @@
     "stock": 23,
     "rating": 4.5,
     "review_count": 142,
-    "image_url": "/images/clarks-cushion-heel.jpg",
+    "image_url": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400",
     "attributes": {
       "brand": "Clarks",
       "sizes": [
@@ -64,7 +64,7 @@
     "stock": 18,
     "rating": 4.7,
     "review_count": 89,
-    "image_url": "/images/cole-haan-ambition.jpg",
+    "image_url": "https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?w=400",
     "attributes": {
       "brand": "Cole Haan",
       "sizes": [
@@ -112,7 +112,7 @@
     "stock": 31,
     "rating": 4.3,
     "review_count": 201,
-    "image_url": "/images/naturalizer-vera.jpg",
+    "image_url": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400",
     "attributes": {
       "brand": "Naturalizer",
       "sizes": [
@@ -161,7 +161,7 @@
     "stock": 12,
     "rating": 4.9,
     "review_count": 324,
-    "image_url": "/images/macbook-pro-16.jpg",
+    "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400",
     "attributes": {
       "brand": "Apple",
       "processor": "M3 Pro",
@@ -197,7 +197,7 @@
     "stock": 45,
     "rating": 4.8,
     "review_count": 567,
-    "image_url": "/images/iphone-15-pro-max.jpg",
+    "image_url": "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400",
     "attributes": {
       "brand": "Apple",
       "storage": [
@@ -238,7 +238,7 @@
     "stock": 67,
     "rating": 4.7,
     "review_count": 892,
-    "image_url": "/images/sony-wh1000xm5.jpg",
+    "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
     "attributes": {
       "brand": "Sony",
       "type": "Over-ear",
@@ -273,7 +273,7 @@
     "stock": 89,
     "rating": 4.6,
     "review_count": 445,
-    "image_url": "/images/apple-watch-s9.jpg",
+    "image_url": "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=400",
     "attributes": {
       "brand": "Apple",
       "sizes": [
@@ -316,7 +316,7 @@
     "stock": 34,
     "rating": 4.8,
     "review_count": 234,
-    "image_url": "/images/ipad-pro-129.jpg",
+    "image_url": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400",
     "attributes": {
       "brand": "Apple",
       "storage": [
@@ -361,7 +361,7 @@
     "stock": 56,
     "rating": 4.4,
     "review_count": 178,
-    "image_url": "/images/floral-maxi-dress.jpg",
+    "image_url": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400",
     "attributes": {
       "brand": "Summer Breeze",
       "sizes": [
@@ -403,7 +403,7 @@
     "stock": 103,
     "rating": 4.6,
     "review_count": 521,
-    "image_url": "/images/nike-pegasus-40.jpg",
+    "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
     "attributes": {
       "brand": "Nike",
       "sizes": [
@@ -437,7 +437,7 @@
     "id": "prod_011",
     "sku": "KITCHEN-EXP-011",
     "name": "Breville Barista Express Espresso Machine",
-    "description": "All-in-one espresso machine with integrated grinder and steam wand for steaming milk. Perfect for home baristas who want caf\u00e9-quality espresso drinks. User-friendly with intuitive controls.",
+    "description": "All-in-one espresso machine with integrated grinder and steam wand for steaming milk. Perfect for home baristas who want café-quality espresso drinks. User-friendly with intuitive controls.",
     "category": "Home & Kitchen > Appliances > Coffee Makers",
     "category_path": [
       "Home",
@@ -451,7 +451,7 @@
     "stock": 18,
     "rating": 4.8,
     "review_count": 612,
-    "image_url": "/images/breville-barista.jpg",
+    "image_url": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400",
     "attributes": {
       "brand": "Breville",
       "colors": [
@@ -487,7 +487,7 @@
     "stock": 42,
     "rating": 4.9,
     "review_count": 845,
-    "image_url": "/images/kitchenaid-artisan.jpg",
+    "image_url": "https://images.unsplash.com/photo-1585515320310-259814833e62?w=400",
     "attributes": {
       "brand": "KitchenAid",
       "colors": [
@@ -525,7 +525,7 @@
     "stock": 78,
     "rating": 4.7,
     "review_count": 923,
-    "image_url": "/images/instant-pot-duo.jpg",
+    "image_url": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400",
     "attributes": {
       "brand": "Instant Pot",
       "capacity": "6 quarts",
@@ -558,7 +558,7 @@
     "stock": 25,
     "rating": 4.8,
     "review_count": 734,
-    "image_url": "/images/dyson-v15.jpg",
+    "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
     "attributes": {
       "brand": "Dyson",
       "colors": [
@@ -594,7 +594,7 @@
     "stock": 34,
     "rating": 4.9,
     "review_count": 567,
-    "image_url": "/images/le-creuset-dutch.jpg",
+    "image_url": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400",
     "attributes": {
       "brand": "Le Creuset",
       "capacity": "5.5 quarts",
@@ -605,7 +605,7 @@
         "Marseille Blue"
       ],
       "material": "Enameled Cast Iron",
-      "oven_safe": "500\u00b0F"
+      "oven_safe": "500°F"
     },
     "key_features": [
       "Enameled cast iron",
@@ -632,7 +632,7 @@
     "stock": 48,
     "rating": 4.6,
     "review_count": 456,
-    "image_url": "/images/cuisinart-food-proc.jpg",
+    "image_url": "https://images.unsplash.com/photo-1556909190-eccf4a8bf97a?w=400",
     "attributes": {
       "brand": "Cuisinart",
       "capacity": "14 cups",
@@ -668,7 +668,7 @@
     "stock": 125,
     "rating": 4.7,
     "review_count": 789,
-    "image_url": "/images/levis-501.jpg",
+    "image_url": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400",
     "attributes": {
       "brand": "Levi's",
       "fit": "Straight",
@@ -713,7 +713,7 @@
     "stock": 56,
     "rating": 4.8,
     "review_count": 654,
-    "image_url": "/images/patagonia-fleece.jpg",
+    "image_url": "https://images.unsplash.com/photo-1539794830467-1f1755804d13?w=400",
     "attributes": {
       "brand": "Patagonia",
       "sizes": [
@@ -758,7 +758,7 @@
     "stock": 92,
     "rating": 4.5,
     "review_count": 432,
-    "image_url": "/images/brooks-brothers-shirt.jpg",
+    "image_url": "https://images.unsplash.com/photo-1602810319250-a663f0af2f75?w=400",
     "attributes": {
       "brand": "Brooks Brothers",
       "fit": "Tailored",
@@ -804,7 +804,7 @@
     "stock": 67,
     "rating": 4.8,
     "review_count": 723,
-    "image_url": "/images/timberland-boot.jpg",
+    "image_url": "https://images.unsplash.com/photo-1544441893-675973e31985?w=400",
     "attributes": {
       "brand": "Timberland",
       "sizes": [
@@ -849,7 +849,7 @@
     "stock": 186,
     "rating": 4.4,
     "review_count": 328,
-    "image_url": "/images/ua-tech-polo.jpg",
+    "image_url": "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400",
     "attributes": {
       "brand": "Under Armour",
       "sizes": [
@@ -894,7 +894,7 @@
     "stock": 89,
     "rating": 4.7,
     "review_count": 612,
-    "image_url": "/images/rayban-aviator.jpg",
+    "image_url": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400",
     "attributes": {
       "brand": "Ray-Ban",
       "lens_color": [
@@ -933,7 +933,7 @@
     "stock": 74,
     "rating": 4.6,
     "review_count": 523,
-    "image_url": "/images/herschel-retreat.jpg",
+    "image_url": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
     "attributes": {
       "brand": "Herschel",
       "capacity": "19.5 liters",
@@ -969,7 +969,7 @@
     "stock": 156,
     "rating": 4.5,
     "review_count": 289,
-    "image_url": "/images/fossil-wallet.jpg",
+    "image_url": "https://images.unsplash.com/photo-1627123424574-724758594785?w=400",
     "attributes": {
       "brand": "Fossil",
       "material": "Leather",
@@ -1005,7 +1005,7 @@
     "stock": 108,
     "rating": 4.8,
     "review_count": 445,
-    "image_url": "/images/pandora-moments.jpg",
+    "image_url": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400",
     "attributes": {
       "brand": "Pandora",
       "material": "Sterling Silver",
@@ -1043,7 +1043,7 @@
     "stock": 54,
     "rating": 4.7,
     "review_count": 378,
-    "image_url": "/images/samsonite-carry-on.jpg",
+    "image_url": "https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?w=400",
     "attributes": {
       "brand": "Samsonite",
       "capacity": "22 inches",
@@ -1081,7 +1081,7 @@
     "stock": 31,
     "rating": 4.8,
     "review_count": 621,
-    "image_url": "/images/dyson-airwrap.jpg",
+    "image_url": "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400",
     "attributes": {
       "brand": "Dyson",
       "heat_control": "Intelligent",
@@ -1117,7 +1117,7 @@
     "stock": 212,
     "rating": 4.7,
     "review_count": 834,
-    "image_url": "/images/cerave-moisturizer.jpg",
+    "image_url": "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400",
     "attributes": {
       "brand": "CeraVe",
       "sizes": [
@@ -1155,7 +1155,7 @@
     "stock": 78,
     "rating": 4.9,
     "review_count": 512,
-    "image_url": "/images/jo-malone-cologne.jpg",
+    "image_url": "https://images.unsplash.com/photo-1541643600914-78b084683702?w=400",
     "attributes": {
       "brand": "Jo Malone",
       "size": "100ml",
@@ -1192,7 +1192,7 @@
     "stock": 43,
     "rating": 4.8,
     "review_count": 567,
-    "image_url": "/images/oralb-io-series9.jpg",
+    "image_url": "https://images.unsplash.com/photo-1559591935-c32ef77ed0fd?w=400",
     "attributes": {
       "brand": "Oral-B",
       "smart_modes": 7,
@@ -1229,7 +1229,7 @@
     "stock": 102,
     "rating": 4.7,
     "review_count": 478,
-    "image_url": "/images/olaplex-treatment.jpg",
+    "image_url": "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400",
     "attributes": {
       "brand": "Olaplex",
       "set_includes": 3,
@@ -1262,7 +1262,7 @@
     "stock": 65,
     "rating": 4.8,
     "review_count": 534,
-    "image_url": "/images/manduka-pro-mat.jpg",
+    "image_url": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400",
     "attributes": {
       "brand": "Manduka",
       "material": "Natural Rubber",
@@ -1300,7 +1300,7 @@
     "stock": 189,
     "rating": 4.7,
     "review_count": 723,
-    "image_url": "/images/yeti-rambler.jpg",
+    "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400",
     "attributes": {
       "brand": "Yeti",
       "capacity": "26oz",
@@ -1338,7 +1338,7 @@
     "stock": 78,
     "rating": 4.6,
     "review_count": 456,
-    "image_url": "/images/tnf-thermoball.jpg",
+    "image_url": "https://images.unsplash.com/photo-1530878955558-b4832bba5b2e?w=400",
     "attributes": {
       "brand": "The North Face",
       "sizes": [
@@ -1383,7 +1383,7 @@
     "stock": 94,
     "rating": 4.5,
     "review_count": 389,
-    "image_url": "/images/coleman-sundome.jpg",
+    "image_url": "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400",
     "attributes": {
       "brand": "Coleman",
       "capacity": "4 person",
@@ -1418,7 +1418,7 @@
     "stock": 52,
     "rating": 4.9,
     "review_count": 687,
-    "image_url": "/images/garmin-forerunner.jpg",
+    "image_url": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400",
     "attributes": {
       "brand": "Garmin",
       "display": "AMOLED",
@@ -1454,7 +1454,7 @@
     "stock": 98,
     "rating": 4.7,
     "review_count": 612,
-    "image_url": "/images/samsung-buds2-pro.jpg",
+    "image_url": "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400",
     "attributes": {
       "brand": "Samsung",
       "active_noise_cancellation": true,
@@ -1490,7 +1490,7 @@
     "stock": 134,
     "rating": 4.6,
     "review_count": 523,
-    "image_url": "/images/anker-737-bank.jpg",
+    "image_url": "https://images.unsplash.com/photo-1610945264803-c22b62d2a7b3?w=400",
     "attributes": {
       "brand": "Anker",
       "capacity": "24000mAh",
@@ -1528,7 +1528,7 @@
     "stock": 87,
     "rating": 4.8,
     "review_count": 445,
-    "image_url": "/images/logitech-mx-master.jpg",
+    "image_url": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400",
     "attributes": {
       "brand": "Logitech",
       "type": "Wireless",
@@ -1563,7 +1563,7 @@
     "stock": 76,
     "rating": 4.7,
     "review_count": 589,
-    "image_url": "/images/adidas-ultraboost-light.jpg",
+    "image_url": "https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?w=400",
     "attributes": {
       "brand": "Adidas",
       "sizes": [
@@ -1596,7 +1596,7 @@
     "id": "prod_041",
     "sku": "FASHION-PARKA-041",
     "name": "Canada Goose Expedition Parka",
-    "description": "Premium insulated parka with Canada Goose's signature down fill technology. Extreme weather protection rated for temperatures below -30\u00b0C. Water-resistant shell with knit ribbed trim.",
+    "description": "Premium insulated parka with Canada Goose's signature down fill technology. Extreme weather protection rated for temperatures below -30°C. Water-resistant shell with knit ribbed trim.",
     "category": "Fashion > Outerwear > Winter Coats",
     "category_path": [
       "Fashion",
@@ -1609,7 +1609,7 @@
     "stock": 21,
     "rating": 4.9,
     "review_count": 356,
-    "image_url": "/images/canada-goose-parka.jpg",
+    "image_url": "https://images.unsplash.com/photo-1516903442223-89b75c4e47c4?w=400",
     "attributes": {
       "brand": "Canada Goose",
       "sizes": [
@@ -1626,7 +1626,7 @@
         "Red"
       ],
       "material": "Polyester/Down",
-      "temperature_rating": "-30\u00b0C"
+      "temperature_rating": "-30°C"
     },
     "key_features": [
       "Premium down insulation",
@@ -1652,7 +1652,7 @@
     "stock": 143,
     "rating": 4.8,
     "review_count": 834,
-    "image_url": "/images/lululemon-align.jpg",
+    "image_url": "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400",
     "attributes": {
       "brand": "Lululemon",
       "sizes": [
@@ -1819,7 +1819,7 @@
     "stock": 20,
     "rating": 4.9,
     "review_count": 15200,
-    "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+    "image_url": "https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=400",
     "attributes": {
       "brand": "Nike",
       "sizes": [
@@ -1981,7 +1981,7 @@
     "stock": 30,
     "rating": 4.9,
     "review_count": 2870,
-    "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+    "image_url": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400",
     "attributes": {
       "brand": "New Balance",
       "sizes": [
@@ -2021,7 +2021,7 @@
     "stock": 65,
     "rating": 4.6,
     "review_count": 6540,
-    "image_url": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400",
+    "image_url": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=400",
     "attributes": {
       "brand": "New Balance",
       "sizes": [
@@ -2877,7 +2877,7 @@
     "id": "prod_701",
     "sku": "FASH-RL-POLO",
     "name": "Ralph Lauren Classic Fit Polo Shirt",
-    "description": "The iconic polo. Soft cotton piqu\u00e9 with a classic fit and signature pony embroidery. A timeless wardrobe essential for any occasion from casual to smart-casual.",
+    "description": "The iconic polo. Soft cotton piqué with a classic fit and signature pony embroidery. A timeless wardrobe essential for any occasion from casual to smart-casual.",
     "category": "Men's Clothing > Shirts > Polos",
     "category_path": [
       "Men",
@@ -2911,7 +2911,7 @@
       ]
     },
     "key_features": [
-      "100% cotton piqu\u00e9",
+      "100% cotton piqué",
       "Classic fit",
       "Signature Polo pony",
       "Ribbed collar/cuffs",
@@ -3191,7 +3191,7 @@
     "stock": 70,
     "rating": 4.6,
     "review_count": 8900,
-    "image_url": "https://images.unsplash.com/photo-1580870069867-74c57ee1bb07?w=400",
+    "image_url": "https://images.unsplash.com/photo-1556906781-9dcd19caef06?w=400",
     "attributes": {
       "brand": "Adidas",
       "sizes": [
@@ -3282,7 +3282,7 @@
   {
     "id": "prod_1003",
     "sku": "BEAUTY-ESTEE-ANR",
-    "name": "Est\u00e9e Lauder Advanced Night Repair Serum",
+    "name": "Estée Lauder Advanced Night Repair Serum",
     "description": "The iconic little brown bottle. Chronolux Power Signal Technology repairs skin overnight. Reduces fine lines, wrinkles, dark spots, and dullness. 40+ years of innovation.",
     "category": "Beauty & Personal Care > Skincare > Moisturizers",
     "category_path": [
@@ -3298,7 +3298,7 @@
     "review_count": 18700,
     "image_url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400",
     "attributes": {
-      "brand": "Est\u00e9e Lauder",
+      "brand": "Estée Lauder",
       "skin_type": "All skin types",
       "size": "1 oz / 30ml"
     },
@@ -3385,7 +3385,7 @@
     "id": "prod_1102",
     "sku": "HOME-NINJA-FOODI",
     "name": "Ninja Foodi 9-in-1 Pressure Cooker & Air Fryer",
-    "description": "TenderCrisp technology combines pressure cooking and air frying. 9 cooking functions: pressure cook, air fry/crisp, steam, slow cook, sear/saut\u00e9, bake/roast, broil, yogurt, dehydrate.",
+    "description": "TenderCrisp technology combines pressure cooking and air frying. 9 cooking functions: pressure cook, air fry/crisp, steam, slow cook, sear/sauté, bake/roast, broil, yogurt, dehydrate.",
     "category": "Home & Kitchen > Appliances > Pressure Cookers",
     "category_path": [
       "Home",
@@ -3453,7 +3453,7 @@
     "id": "prod_1104",
     "sku": "HOME-NINJA-AF",
     "name": "Ninja Air Fryer Max XL",
-    "description": "Max Crisp Technology at 450\u00b0F for crispier results with up to 75% less fat. 5.5 qt capacity feeds a family. Wide temperature range for air fry, roast, reheat, and dehydrate.",
+    "description": "Max Crisp Technology at 450°F for crispier results with up to 75% less fat. 5.5 qt capacity feeds a family. Wide temperature range for air fry, roast, reheat, and dehydrate.",
     "category": "Home & Kitchen > Appliances > Food Processors",
     "category_path": [
       "Home",
@@ -3476,7 +3476,7 @@
       "capacity": "5.5 qt"
     },
     "key_features": [
-      "Max Crisp Technology 450\u00b0F",
+      "Max Crisp Technology 450°F",
       "75% less fat",
       "5.5 qt XL capacity",
       "4 cooking programs",
