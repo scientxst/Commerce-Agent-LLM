@@ -1,21 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGoogleLogin } from '@react-oauth/google'
+import { GoogleLogin } from '@react-oauth/google'
 import { useMsal } from '@azure/msal-react'
 import useAuthStore from '../stores/authStore'
 
 // ── Brand icons ───────────────────────────────────────────────────
 
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-    </svg>
-  )
-}
 
 function MicrosoftIcon() {
   return (
@@ -198,35 +188,19 @@ export default function LoginPage() {
   const [oauthError, setOauthError] = useState('')
   const { instance } = useMsal()
 
-  // ── Google login via @react-oauth/google ──────────────────────
-  const triggerGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      // tokenResponse.access_token — use to fetch user info and exchange on backend
-      setOauthLoading('google')
-      setOauthError('')
-      try {
-        // Fetch ID token via the userinfo endpoint
-        const infoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        })
-        if (!infoRes.ok) throw new Error('Failed to fetch Google user info')
-        // We pass the access token to our backend which verifies via Google userinfo
-        // But our backend expects an ID token for verify_oauth2_token — use credential flow instead
-        // Fallback: use access_token path — see note below
-        await loginWithGoogle(tokenResponse.access_token)
-        if (useAuthStore.getState().isAuthenticated) navigate('/', { replace: true })
-      } catch (err) {
-        setOauthError(err.message || 'Google sign-in failed')
-      } finally {
-        setOauthLoading(null)
-      }
-    },
-    onError: () => {
-      setOauthError('Google sign-in was cancelled or failed')
+  // ── Google login via GoogleLogin component (returns ID token credential) ──
+  async function handleGoogleSuccess(credentialResponse) {
+    setOauthLoading('google')
+    setOauthError('')
+    try {
+      await loginWithGoogle(credentialResponse.credential)
+      if (useAuthStore.getState().isAuthenticated) navigate('/', { replace: true })
+    } catch (err) {
+      setOauthError(err.message || 'Google sign-in failed')
+    } finally {
       setOauthLoading(null)
-    },
-    flow: 'implicit',   // returns access_token in browser (no server redirect needed)
-  })
+    }
+  }
 
   // ── Microsoft login via MSAL ──────────────────────────────────
   async function handleMicrosoft() {
@@ -300,17 +274,13 @@ export default function LoginPage() {
             {/* Buttons */}
             <div className="space-y-3">
               {/* Google */}
-              <button
-                onClick={() => { setOauthError(''); clearError(); triggerGoogleLogin() }}
-                disabled={busy}
-                className="w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl border-2 font-semibold text-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-60"
-                style={{ borderColor: '#E2ECF9', background: oauthLoading === 'google' ? '#F0F7FF' : 'white', color: '#1E3A5F' }}
-              >
-                <span className="w-5 flex-shrink-0 flex items-center justify-center">
-                  {oauthLoading === 'google' ? <Spinner color="#4285F4" /> : <GoogleIcon />}
-                </span>
-                <span className="flex-1 text-center">Continue with Google</span>
-              </button>
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => { setOauthError('Google sign-in was cancelled or failed'); setOauthLoading(null) }}
+                  width="400"
+                />
+              </div>
 
               {/* Microsoft */}
               <button
