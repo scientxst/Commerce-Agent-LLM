@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ShoppingCart, Sun, Moon, LogOut, UserCircle } from 'lucide-react'
+import { ShoppingCart, Sun, Moon, LogOut, UserCircle, Sparkles } from 'lucide-react'
 import useCartStore from '../../stores/cartStore'
 import useThemeStore from '../../stores/themeStore'
 import useAuthStore from '../../stores/authStore'
@@ -24,7 +24,9 @@ export default function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 shadow-sm" />
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-sm">
+                <Sparkles size={18} />
+              </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 ShopAssist
               </h1>
