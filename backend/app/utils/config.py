@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # RapidAPI — Real-Time Product Search
     RAPIDAPI_KEY: str = ""
 
+    # SerpAPI — Google Shopping
+    SERPAPI_KEY: str = ""
+
     # eBay Browse API
     EBAY_CLIENT_ID: str = ""
     EBAY_CLIENT_SECRET: str = ""

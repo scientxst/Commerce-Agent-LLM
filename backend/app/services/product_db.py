@@ -111,6 +111,62 @@ def _map_rapidapi_product(item: Dict[str, Any]) -> Product:
     )
 
 
+def _map_serpapi_product(item: Dict[str, Any]) -> Product:
+    """Convert a SerpAPI Google Shopping result to our Product schema."""
+    product_id = str(item.get("product_id") or item.get("position", ""))
+    title = item.get("title", "Unknown Product")
+    description = item.get("snippet") or title
+
+    # Price
+    try:
+        price = float(item.get("extracted_price") or 0)
+    except (TypeError, ValueError):
+        price = 0.0
+
+    # Merchant / source
+    merchant_name = item.get("source", "Google Shopping")
+
+    # Rating & reviews
+    try:
+        rating = float(item.get("rating") or 0)
+    except (TypeError, ValueError):
+        rating = 0.0
+    try:
+        review_count = int(item.get("reviews") or 0)
+    except (TypeError, ValueError):
+        review_count = 0
+
+    image_url = item.get("thumbnail")
+    product_url = item.get("link")
+
+    # Category — not in search results; may appear in product detail
+    category = item.get("type") or "General"
+
+    return Product(
+        id=product_id,
+        sku=product_id,
+        name=title,
+        description=description,
+        category=category,
+        category_path=[category],
+        price=price,
+        stock=10,  # SerpAPI does not expose stock counts
+        rating=round(min(rating, 5.0), 1),
+        review_count=review_count,
+        image_url=image_url,
+        merchant_id=merchant_name,
+        merchant_name=merchant_name,
+        product_url=product_url,
+        attributes={
+            "brand": "",
+            "sizes": [],
+            "colors": [],
+            "condition": "New",
+        },
+        key_features=[f"Sold by {merchant_name}"],
+    )
+
+
 def _map_ebay_item(item: Dict[str, Any]) -> Product:
     """Convert an eBay itemSummary or item-detail dict to our Product schema."""
     item_id = item.get("itemId", "")
@@ -189,12 +245,14 @@ class ProductDBService:
 
     Source priority:
       1. RapidAPI Real-Time Product Search (RAPIDAPI_KEY set)
-      2. eBay Browse API (EBAY_CLIENT_ID + EBAY_CLIENT_SECRET set)
-      3. Local sample_products.json (fallback)
+      2. SerpAPI Google Shopping (SERPAPI_KEY set)
+      3. eBay Browse API (EBAY_CLIENT_ID + EBAY_CLIENT_SECRET set)
+      4. Local sample_products.json (fallback)
     """
 
     def __init__(self, data_file: str = _DEFAULT_DATA_FILE):
         self._use_rapidapi = bool(getattr(settings, "RAPIDAPI_KEY", ""))
+        self._use_serpapi = bool(getattr(settings, "SERPAPI_KEY", ""))
         self._use_ebay = bool(
             getattr(settings, "EBAY_CLIENT_ID", "") and
             getattr(settings, "EBAY_CLIENT_SECRET", "")
@@ -212,15 +270,23 @@ class ProductDBService:
         else:
             self._rapidapi = None
 
+        if self._use_serpapi:
+            from app.services.serpapi_client import SerpAPIClient
+            self._serpapi = SerpAPIClient()
+            if not self._use_rapidapi:
+                log.info("ProductDBService: using SerpAPI Google Shopping")
+        else:
+            self._serpapi = None
+
         if self._use_ebay:
             from app.services.ebay_client import EbayClient
             self._ebay = EbayClient()
-            if not self._use_rapidapi:
+            if not self._use_rapidapi and not self._use_serpapi:
                 log.info("ProductDBService: using eBay Browse API")
         else:
             self._ebay = None
 
-        if not self._use_rapidapi and not self._use_ebay:
+        if not self._use_rapidapi and not self._use_serpapi and not self._use_ebay:
             log.warning(
                 "No external product API configured — "
                 "falling back to sample product data"
@@ -265,6 +331,13 @@ class ProductDBService:
                 self._cache_product(product)
                 return product
 
+        if self._use_serpapi:
+            item = await self._serpapi.get_product(product_id)
+            if item:
+                product = _map_serpapi_product(item)
+                self._cache_product(product)
+                return product
+
         if self._use_ebay:
             item = await self._ebay.get_item(product_id)
             if item:
@@ -286,9 +359,17 @@ class ProductDBService:
 
         if self._use_rapidapi:
             items = await self._rapidapi.search(query, limit=20, filters=filters)
+            results = [_map_rapidapi_product(i).dict() for i in items]
+            for item in items:
+                self._cache_product(_map_rapidapi_product(item))
+            self._search_cache[cache_key] = (results, time.time() + _SEARCH_CACHE_TTL)
+            return results
+
+        if self._use_serpapi:
+            items = await self._serpapi.search(query, limit=20, filters=filters)
             results = []
             for item in items:
-                product = _map_rapidapi_product(item)
+                product = _map_serpapi_product(item)
                 self._cache_product(product)
                 results.append(product.dict())
             self._search_cache[cache_key] = (results, time.time() + _SEARCH_CACHE_TTL)
@@ -307,7 +388,7 @@ class ProductDBService:
         return self._keyword_search_sample(query, filters)
 
     async def get_by_category(self, category: str, limit: int = 10) -> List[Product]:
-        if not self._use_rapidapi and not self._use_ebay:
+        if not self._use_rapidapi and not self._use_serpapi and not self._use_ebay:
             return self._sample_by_category(category, limit)
 
         cache_key = f"cat:{category}:{limit}"
@@ -318,6 +399,9 @@ class ProductDBService:
         if self._use_rapidapi:
             items = await self._rapidapi.search(category, limit=limit)
             products = [_map_rapidapi_product(i) for i in items]
+        elif self._use_serpapi:
+            items = await self._serpapi.search(category, limit=limit)
+            products = [_map_serpapi_product(i) for i in items]
         else:
             items = await self._ebay.search(category, limit=limit)
             products = [_map_ebay_item(i) for i in items]
@@ -343,9 +427,14 @@ class ProductDBService:
 
     async def warmup(self):
         """Pre-populate the cache by searching common categories on startup."""
-        if not self._use_rapidapi and not self._use_ebay:
+        if not self._use_rapidapi and not self._use_serpapi and not self._use_ebay:
             return
-        source = "RapidAPI" if self._use_rapidapi else "eBay"
+        if self._use_rapidapi:
+            source = "RapidAPI"
+        elif self._use_serpapi:
+            source = "SerpAPI"
+        else:
+            source = "eBay"
         log.info("Warming up %s product cache...", source)
         for query in _WARMUP_QUERIES:
             try:

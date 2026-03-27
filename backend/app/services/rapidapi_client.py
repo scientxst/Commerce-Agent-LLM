@@ -28,17 +28,20 @@ class RapidAPIProductClient:
     async def search(
         self,
         query: str,
-        limit: int = 20,
+        limit: int = 10,
         filters: Optional[Dict[str, Any]] = None,
+        page: int = 1,
     ) -> List[Dict[str, Any]]:
-        """Search products and return a list of product dicts."""
+        """Search products via /search-v2 and return a list of product dicts."""
         params: Dict[str, Any] = {
             "q": query,
             "country": "us",
             "language": "en",
-            "limit": str(min(limit, 20)),
+            "page": str(page),
+            "limit": str(min(limit, 10)),
             "sort_by": "BEST_MATCH",
             "product_condition": "ANY",
+            "return_filters": "true",
         }
 
         if filters:
@@ -49,7 +52,7 @@ class RapidAPIProductClient:
 
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(
-                f"{RAPIDAPI_BASE_URL}/search",
+                f"{RAPIDAPI_BASE_URL}/search-v2",
                 headers=self._headers,
                 params=params,
             )
@@ -60,7 +63,14 @@ class RapidAPIProductClient:
             )
             return []
 
-        return resp.json().get("data", {}).get("products", [])
+        data = resp.json()
+        # search-v2 nests results under data.products or data.items
+        products = (
+            data.get("data", {}).get("products")
+            or data.get("data", {}).get("items")
+            or []
+        )
+        return products
 
     async def get_product(self, product_id: str) -> Optional[Dict[str, Any]]:
         """Fetch full product details by product ID."""
