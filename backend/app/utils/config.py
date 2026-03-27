@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_DIM: int = 1536
 
+    # RapidAPI — Real-Time Product Search
+    RAPIDAPI_KEY: str = ""
+
+    # eBay Browse API
+    EBAY_CLIENT_ID: str = ""
+    EBAY_CLIENT_SECRET: str = ""
+
     # Stripe (sandbox)
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

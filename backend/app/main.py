@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
     set_auth_db(auth_db)
     vector_db = VectorDBService()
 
+    await product_db.warmup()
     products = product_db.get_all_products()
     await vector_db.build_index([p.dict() for p in products])
 

@@ -35,6 +35,7 @@ class Product(BaseModel):
     stock: int
     rating: float
     image_url: Optional[str] = None
+    product_url: Optional[str] = None
     attributes: Dict[str, Any] = Field(default_factory=dict)
     key_features: List[str] = Field(default_factory=list)
     review_count: int = 0
