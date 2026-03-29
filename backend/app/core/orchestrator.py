@@ -14,35 +14,42 @@ from app.utils.config import settings
 
 log = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are ShopAssist — a warm, natural AI shopping companion. Think of yourself as a knowledgeable friend who loves helping people find great products, but also just enjoys a good conversation.
+SYSTEM_PROMPT = """You are ShopAssist — a friendly, conversational AI that helps people shop. You can also just chat naturally about anything.
 
-YOUR PERSONALITY:
-- Talk like a real person, not a product catalog. Be warm, casual, and genuinely helpful.
-- When someone greets you, greet them back naturally and ask what brings them in today.
-- If someone asks a general question (time, weather, trivia), answer it briefly and naturally pivot: e.g. "I can't check the time, but if you're looking for a great watch I can help with that 😄"
-- Gently nudge conversations toward shopping, but never force it. Let curiosity lead.
-- If the user is vague ("I need something nice"), ask a friendly clarifying question — budget? occasion? who's it for?
+PERSONALITY:
+- Be warm, casual, genuine. Talk like a helpful friend, not a product catalog.
+- You can discuss ANY topic — time, weather, jokes, advice, trivia. You are not limited to shopping.
+- When the conversation naturally relates to products, gently offer to help find something. Never force it.
 
-TOOL RULES (non-negotiable):
-1. ALWAYS use search_products or browse_category when the user asks about any product, category, or shopping need. NEVER answer product questions from memory.
-2. ONLY call tools when the user has clear shopping intent. Greetings, small talk, and general questions get a natural response with NO tool calls.
-3. NEVER call any tool for: questions about the time, date, day, weather, or any non-shopping topic. Answer these directly and naturally in words — do NOT search for products.
-4. Never invent prices, discounts, or promo codes. Use ONLY data returned by tools.
-5. Never claim a product is in stock without verifying via tools.
-6. When presenting products, always mention merchant name and price.
-7. If the user asks to add something to cart, use the add_to_cart tool.
+WHEN TO USE TOOLS (critical — read carefully):
+- ONLY call search_products or browse_category when the user is clearly asking about a PRODUCT they want to find, buy, or compare.
+- Examples of SHOPPING intent (USE tools): "show me running shoes", "find me a laptop under $500", "I need a gift for my mom", "red hoodie size M"
+- Examples of NON-SHOPPING intent (NEVER use tools): "what time is it", "tell me the time", "how are you", "what's the weather", "tell me a joke", "who are you", "answer my question", "what can you do", "thanks"
+- If the user says something ambiguous, respond conversationally and ASK what they're looking for. Do NOT search.
+- The word "time" by itself is NOT a product search. "watch" by itself IS a product search.
+- When in doubt, DON'T call a tool. Just respond naturally.
+
+TOOL RULES:
+1. ONLY use tools for clear shopping intent. Everything else gets a natural conversational response with NO tool calls.
+2. Never invent prices, discounts, or promo codes. Use ONLY data returned by tools.
+3. Never claim a product is in stock without verifying via tools.
+4. When presenting products, mention merchant name and price.
+5. If the user asks to add something to cart, use the add_to_cart tool.
 
 RESPONSE STYLE:
-- Keep it concise and conversational — no walls of text.
-- For product results, give a short friendly intro before listing items.
-- End shopping responses with a natural follow-up question ("Want me to narrow it down by budget or color?").
+- Keep it concise — no walls of text.
+- For product results, short friendly intro then list items.
+- After showing products, ask a natural follow-up ("Want me to filter by budget or color?").
+- For non-shopping conversations, be helpful and naturally mention you can help with shopping if relevant.
 
 User context:
 - Recent products: {recent_products}
 - Cart: {cart_info}
 - Preferences: {preferences}"""
 
-# Pure greeting / social phrases (full-message match)
+# Simple greeting detector — used ONLY as a latency optimisation to skip
+# the ReAct loop for obvious greetings. NOT used for correctness — the LLM
+# handles all intent classification for non-trivial messages.
 _GREETING_RE = re.compile(
     r"^\s*(hi+|hey+|hello+|howdy|hiya|yo+|greetings|"
     r"what'?s\s*up|sup|what'?s\s*good|what'?s\s*new|"
@@ -55,90 +62,17 @@ _GREETING_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Message STARTS with a greeting word (catches "hi whatsuo", "hey there", "hello friend" etc.)
-_GREETING_START_RE = re.compile(
-    r"^\s*(hi+|hey+|hello+|howdy|hiya|yo+|sup|greetings|good\s*(morning|afternoon|evening|day))\b",
-    re.IGNORECASE,
-)
 
-# General non-shopping questions that should never trigger a product search
-_NON_SHOPPING_RE = re.compile(
-    r"^\s*(what'?s?\s*(the\s*)?(time|day|date|year|month)|"
-    r"what\s*(time|day|date|year|month|is\s*(it|the\s*(time|date|day)))|"
-    r"who\s*(are\s*you|made\s*you|created\s*you|built\s*you|is\s*your\s*creator)|"
-    r"what\s*are\s*you|tell\s*me\s*about\s*yourself|"
-    r"how\s*does\s*(this|the\s*app)\s*work|what\s*can\s*you\s*(do|help)|"
-    r"what'?s?\s*the\s*weather|are\s*you\s*(a\s*)?(bot|ai|robot|human|real)|"
-    r"do\s*you\s*(have\s*feelings|feel|think|know\s*everything))\b",
-    re.IGNORECASE,
-)
-
-# Time/date/meta questions that can appear anywhere in a short message
-_TIME_QUESTION_RE = re.compile(
-    r"(what'?s?\s*(the\s*)?(time|day|date|year)|"
-    r"what\s+time\s+is\s+it|"
-    r"(tell|give|show)\s+(me\s+)?(the\s+)?(current\s+)?time\b|"
-    r"(what|tell\s+me)\s+(is\s+)?(the\s+)?(current\s+)?(time|date|day)\b|"
-    r"do\s+you\s+know\s+the\s+time|"
-    r"current\s+(time|date|day|year))",
-    re.IGNORECASE,
-)
-
-# Phrases that explicitly tell the assistant not to search / show products
-_NO_SEARCH_PHRASES = (
-    "don't show", "dont show", "do not show",
-    "no products", "don't search", "dont search", "do not search",
-    "just chat", "just talk", "just saying", "just hi", "just hello",
-    "not shopping", "not looking to buy", "not looking for",
-    "just browsing", "don't recommend", "dont recommend",
-    "stop showing", "without products", "no recommendations",
-)
-
-# Short conversational follow-ups that are never shopping queries
-_CONVERSATIONAL_FOLLOWUPS = re.compile(
-    r"^\s*(answer\s*(my|the)\s*question|"
-    r"(can\s*you\s*)?answer\s*(me|that|it)|"
-    r"(just\s*)?(tell|explain)\s*(me\s*)?(more|that|it|please)?|"
-    r"(what\s*did\s*you\s*(say|mean))|"
-    r"(i\s*didn'?t?\s*(get|understand|follow)\s*(that|you))|"
-    r"(repeat\s*that|say\s*that\s*again|pardon|huh\??|what\??|come\s*again)|"
-    r"(are\s*you\s*there|you\s*still\s*there|hello\??|anyone\s*there)|"
-    r"(never\s*mind|forget\s*it|nvm|nm)|"
-    r"(that'?s?\s*(it|all|fine|good|ok(ay)?|great|perfect|cool)))\s*[!.?,]*\s*$",
-    re.IGNORECASE,
-)
-
-
-def _is_conversational(message: str) -> bool:
-    """True when the message has no shopping intent OR explicitly asks to skip product search."""
+def _is_simple_greeting(message: str) -> bool:
+    """True only for obvious greetings/acks — used as a latency fast-path."""
     stripped = message.strip()
-    lowered = stripped.lower()
-
-    # Explicit opt-out phrases
-    if any(phrase in lowered for phrase in _NO_SEARCH_PHRASES):
-        return True
-
-    # Exact full-message greeting match
     if _GREETING_RE.match(stripped):
         return True
-
-    # Short message (≤8 words) that starts with a greeting word
-    # Catches "hi whatsuo", "hey there how are you", "hello friend" etc.
-    if len(stripped.split()) <= 8 and _GREETING_START_RE.match(stripped):
+    # Very short messages (≤4 words) that start with a greeting word
+    if len(stripped.split()) <= 4 and re.match(
+        r"^\s*(hi+|hey+|hello+|howdy|yo+|sup)\b", stripped, re.IGNORECASE
+    ):
         return True
-
-    # General knowledge / meta questions — answer naturally, never search
-    if _NON_SHOPPING_RE.match(stripped):
-        return True
-
-    # Short messages (≤10 words) that contain a time/date question anywhere
-    if len(stripped.split()) <= 10 and _TIME_QUESTION_RE.search(stripped):
-        return True
-
-    # Common conversational follow-ups that are never shopping queries
-    if _CONVERSATIONAL_FOLLOWUPS.match(stripped):
-        return True
-
     return False
 
 
@@ -185,12 +119,12 @@ class OrchestrationEngine:
             messages.append({"role": m["role"], "content": m["content"]})
 
         # ----------------------------------------------------------------
-        # FAST PATH — conversational messages skip the ReAct loop entirely.
-        # No tools are offered, so no products can leak through.
-        # One LLM call → stream → done. Roughly 2× faster than shopping path.
+        # FAST PATH — simple greetings skip the tool loop (latency only).
+        # This is purely an optimisation. All real intent classification
+        # is done by the LLM in the main path below.
         # ----------------------------------------------------------------
-        if _is_conversational(message):
-            log.info("Conversational message — skipping ReAct loop")
+        if _is_simple_greeting(message):
+            log.info("Simple greeting — fast path (no tools)")
             full_response = ""
             try:
                 stream = await self._client.chat.completions.create(
@@ -204,7 +138,7 @@ class OrchestrationEngine:
                         full_response += delta.content
                         yield {"type": "text", "content": delta.content}
             except Exception as exc:
-                log.error("LLM streaming failed (conversational): %s", exc)
+                log.error("LLM streaming failed (greeting): %s", exc)
                 full_response = "Hey! How can I help you today?"
                 yield {"type": "text", "content": full_response}
 
@@ -214,10 +148,12 @@ class OrchestrationEngine:
             return
 
         # ----------------------------------------------------------------
-        # SHOPPING PATH — full ReAct loop with tools
+        # MAIN PATH — LLM decides whether to use tools or respond naturally.
+        # The system prompt tells it exactly when to search vs. chat.
+        # We trust the LLM's judgment — no regex overrides.
         # ----------------------------------------------------------------
         products_collected = []
-        llm_error = False  # True only when the LLM API call itself fails
+        llm_error = False
 
         for iteration in range(settings.MAX_REACT_ITERATIONS):
             try:
@@ -235,9 +171,18 @@ class OrchestrationEngine:
             assistant_msg = resp.choices[0].message
 
             if not assistant_msg.tool_calls:
-                # LLM deliberately chose not to call tools — trust that decision.
-                # This is the correct path for non-shopping queries that slipped
-                # past _is_conversational (e.g. "time", "I am asking for the time").
+                # LLM decided no tools needed — this IS the answer.
+                # For non-shopping messages ("tell me the time", "answer my
+                # question", etc.) this is the correct, expected path.
+                if assistant_msg.content:
+                    # The LLM already produced its final answer in this
+                    # non-streaming call. Stream it out to the client.
+                    yield {"type": "text", "content": assistant_msg.content}
+                    full_response = assistant_msg.content
+                    full_response = self.guardrails.check_output(full_response)
+                    await self.memory.add_message(ctx, "assistant", full_response)
+                    yield {"type": "done"}
+                    return
                 break
 
             messages.append(assistant_msg.model_dump(exclude_none=True))
@@ -265,8 +210,7 @@ class OrchestrationEngine:
                 except (json.JSONDecodeError, TypeError):
                     pass
 
-        # Fallback search ONLY when the LLM API itself failed — not when the LLM
-        # consciously decided to skip tools (that would override correct behaviour).
+        # Fallback search ONLY on actual LLM API failure
         if llm_error and not products_collected:
             log.info("LLM error — running fallback search for: %s", message[:80])
             try:
@@ -283,7 +227,7 @@ class OrchestrationEngine:
             except Exception as exc:
                 log.warning("Fallback search failed: %s", exc)
 
-        # Stream final response
+        # Stream final response (after tool calls completed)
         full_response = ""
         try:
             stream = await self._client.chat.completions.create(
@@ -301,7 +245,7 @@ class OrchestrationEngine:
             if products_collected:
                 full_response = f"I found {len(products_collected)} product{'s' if len(products_collected) != 1 else ''} for you — check them out in the results panel! Want me to filter by budget or anything else?"
             else:
-                full_response = "I didn't quite catch that — could you tell me what you're looking for? I can help with clothing, tech, home goods, and more!"
+                full_response = "Sorry, something went wrong on my end. Could you try again?"
             yield {"type": "text", "content": full_response}
 
         # Send deduplicated product cards
