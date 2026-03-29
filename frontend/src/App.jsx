@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { Sun, Moon, LogOut, UserCircle } from 'lucide-react'
-import Sidebar from './components/layout/Sidebar'
+import Sidebar, { SIDEBAR_WIDTH } from './components/layout/Sidebar'
 import CartDrawer from './components/layout/CartDrawer'
 import ChatPage from './pages/ChatPage'
 import CheckoutPage from './pages/CheckoutPage'
@@ -152,12 +152,13 @@ export default function App() {
           onClick={() => setActivePanel(null)}
         >
           <div
-            className="absolute top-0 bottom-0 left-16 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl p-6 overflow-y-auto"
+            className="absolute top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl p-6 overflow-y-auto"
+            style={{ left: SIDEBAR_WIDTH }}
             onClick={(e) => e.stopPropagation()}
           >
             <ProfilePanel onClose={() => setActivePanel(null)} />
           </div>
-          <div className="absolute inset-0 left-[352px] bg-black/20 dark:bg-black/40" />
+          <div className="absolute inset-0 bg-black/20 dark:bg-black/40" style={{ left: SIDEBAR_WIDTH + 288 }} />
         </div>
       )}
 
@@ -168,17 +169,18 @@ export default function App() {
           onClick={() => setActivePanel(null)}
         >
           <div
-            className="absolute top-0 bottom-0 left-16 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl p-6 overflow-y-auto"
+            className="absolute top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl p-6 overflow-y-auto"
+            style={{ left: SIDEBAR_WIDTH }}
             onClick={(e) => e.stopPropagation()}
           >
             <SettingsPanel onClose={() => setActivePanel(null)} />
           </div>
-          <div className="absolute inset-0 left-[352px] bg-black/20 dark:bg-black/40" />
+          <div className="absolute inset-0 bg-black/20 dark:bg-black/40" style={{ left: SIDEBAR_WIDTH + 288 }} />
         </div>
       )}
 
       {/* Page content — offset right of sidebar when authenticated */}
-      <div className={isAuthenticated ? 'pl-16' : ''}>
+      <div style={isAuthenticated ? { paddingLeft: SIDEBAR_WIDTH } : {}}>
         <Routes>
           {/* Public */}
           <Route

@@ -7,27 +7,51 @@ import useAuthStore from '../../stores/authStore'
 import useCartStore from '../../stores/cartStore'
 import useSavedStore from '../../stores/savedStore'
 
+const SIDEBAR_WIDTH = 102
+
 function SidebarBtn({ icon: Icon, label, onClick, active, badge }) {
   return (
     <button
-      title={label}
       onClick={onClick}
-      className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-all group ${
-        active
-          ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
-          : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'
-      }`}
+      className="relative flex flex-col items-center justify-center gap-1.5 rounded-xl transition-all"
+      style={{
+        width: '82px',
+        height: '62px',
+        background: active
+          ? 'rgba(0, 200, 230, 0.13)'
+          : 'transparent',
+        border: active
+          ? '1px solid rgba(0, 200, 230, 0.32)'
+          : '1px solid transparent',
+        color: active
+          ? 'rgba(0, 220, 245, 0.95)'
+          : 'rgba(255,255,255,0.42)',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.82)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.42)'
+        }
+      }}
     >
-      <Icon size={20} />
+      <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+      <span style={{ fontSize: '10px', fontWeight: 500, letterSpacing: '0.02em' }}>
+        {label}
+      </span>
       {badge > 0 && (
-        <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center leading-none">
+        <span
+          className="absolute -top-1 -right-1 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center leading-none"
+          style={{ background: 'rgba(99,102,241,0.95)' }}
+        >
           {badge > 9 ? '9+' : badge}
         </span>
       )}
-      {/* Tooltip */}
-      <span className="pointer-events-none absolute left-full ml-3 px-2 py-1 rounded-md bg-gray-900 dark:bg-gray-700 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[60]">
-        {label}
-      </span>
     </button>
   )
 }
@@ -49,18 +73,36 @@ export default function Sidebar({ activePanel, setActivePanel }) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-16 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 z-40 shadow-sm">
+    <aside
+      className="fixed left-0 top-0 bottom-0 flex flex-col items-center py-5 z-40"
+      style={{
+        width: `${SIDEBAR_WIDTH}px`,
+        background: 'rgba(7, 8, 18, 0.78)',
+        backdropFilter: 'blur(22px)',
+        WebkitBackdropFilter: 'blur(22px)',
+        borderRight: '1px solid rgba(0, 200, 230, 0.15)',
+        boxShadow: '2px 0 30px rgba(0, 180, 220, 0.07), inset -1px 0 0 rgba(0, 200, 230, 0.08)',
+      }}
+    >
       {/* Logo */}
       <button
         onClick={() => { navigate('/'); setActivePanel(null) }}
-        className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-sm mb-6 hover:opacity-90 transition-opacity"
         title="ShopAssist"
+        className="flex items-center justify-center rounded-xl mb-7 transition-all hover:opacity-90"
+        style={{
+          width: '48px',
+          height: '48px',
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(14,165,233,0.85))',
+          border: '1px solid rgba(99,102,241,0.5)',
+          boxShadow: '0 0 18px rgba(99,102,241,0.35)',
+          color: 'white',
+        }}
       >
-        <Sparkles size={18} />
+        <Sparkles size={22} />
       </button>
 
       {/* Main nav */}
-      <nav className="flex-1 flex flex-col items-center gap-1.5">
+      <nav className="flex-1 flex flex-col items-center gap-2">
         <SidebarBtn
           icon={Home}
           label="Home"
@@ -79,6 +121,7 @@ export default function Sidebar({ activePanel, setActivePanel }) {
           label="Cart"
           onClick={toggleCart}
           badge={itemCount}
+          active={false}
         />
         <SidebarBtn
           icon={User}
@@ -94,11 +137,42 @@ export default function Sidebar({ activePanel, setActivePanel }) {
         />
       </nav>
 
+      {/* Divider */}
+      <div
+        className="w-14 mb-3"
+        style={{ height: '1px', background: 'rgba(255,255,255,0.08)' }}
+      />
+
       {/* Bottom */}
-      <div className="flex flex-col items-center gap-1.5">
-        <SidebarBtn icon={HelpCircle} label="Help" onClick={() => {}} />
-        <SidebarBtn icon={LogOut} label="Sign out" onClick={handleLogout} />
+      <div className="flex flex-col items-center gap-2">
+        <SidebarBtn icon={HelpCircle} label="Help" onClick={() => {}} active={false} />
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center justify-center gap-1.5 rounded-xl transition-all"
+          title="Sign out"
+          style={{
+            width: '82px',
+            height: '62px',
+            color: 'rgba(255,255,255,0.35)',
+            border: '1px solid transparent',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+            e.currentTarget.style.color = 'rgba(248,113,113,0.9)'
+            e.currentTarget.style.border = '1px solid rgba(239,68,68,0.25)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+            e.currentTarget.style.border = '1px solid transparent'
+          }}
+        >
+          <LogOut size={22} strokeWidth={1.8} />
+          <span style={{ fontSize: '10px', fontWeight: 500 }}>Sign out</span>
+        </button>
       </div>
     </aside>
   )
 }
+
+export { SIDEBAR_WIDTH }
