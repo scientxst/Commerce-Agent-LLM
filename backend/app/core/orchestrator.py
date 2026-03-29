@@ -116,7 +116,7 @@ class OrchestrationEngine:
         log.info("Router → %r (message: %r)", router_content[:60], message[:60])
 
         # ── Conversational path ─────────────────────────────────────────────
-        if router_content.upper() != "SEARCH_PRODUCTS":
+        if "SEARCH_PRODUCTS" not in router_content.upper():
             reply = router_content or "Hey! How can I help you today?"
             yield {"type": "text", "content": reply}
             await self.memory.add_message(ctx, "assistant", self.guardrails.check_output(reply))
