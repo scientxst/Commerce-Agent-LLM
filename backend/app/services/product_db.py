@@ -1,9 +1,10 @@
 """Product database service with multi-source product fetching.
 
 Source priority:
-  1. RapidAPI Real-Time Product Search (if RAPIDAPI_KEY is set)
-  2. eBay Browse API (if EBAY_CLIENT_ID + EBAY_CLIENT_SECRET are set)
-  3. Local sample_products.json (fallback for development)
+  1. SerpAPI Google Shopping (if SERPAPI_KEY is set)
+  2. RapidAPI Real-Time Product Search (if RAPIDAPI_KEY is set)
+  3. eBay Browse API (if EBAY_CLIENT_ID + EBAY_CLIENT_SECRET are set)
+  4. Local sample_products.json (fallback for development)
 """
 import json
 import logging
@@ -244,8 +245,8 @@ class ProductDBService:
     """Fetches products from multiple APIs with in-memory caching.
 
     Source priority:
-      1. RapidAPI Real-Time Product Search (RAPIDAPI_KEY set)
-      2. SerpAPI Google Shopping (SERPAPI_KEY set)
+      1. SerpAPI Google Shopping (SERPAPI_KEY set)
+      2. RapidAPI Real-Time Product Search (RAPIDAPI_KEY set)
       3. eBay Browse API (EBAY_CLIENT_ID + EBAY_CLIENT_SECRET set)
       4. Local sample_products.json (fallback)
     """
@@ -263,25 +264,25 @@ class ProductDBService:
         # cache_key → (results_list, expires_at)
         self._search_cache: Dict[str, tuple] = {}
 
-        if self._use_rapidapi:
-            from app.services.rapidapi_client import RapidAPIProductClient
-            self._rapidapi = RapidAPIProductClient()
-            log.info("ProductDBService: using RapidAPI Real-Time Product Search")
-        else:
-            self._rapidapi = None
-
         if self._use_serpapi:
             from app.services.serpapi_client import SerpAPIClient
             self._serpapi = SerpAPIClient()
-            if not self._use_rapidapi:
-                log.info("ProductDBService: using SerpAPI Google Shopping")
+            log.info("ProductDBService: using SerpAPI Google Shopping")
         else:
             self._serpapi = None
+
+        if self._use_rapidapi:
+            from app.services.rapidapi_client import RapidAPIProductClient
+            self._rapidapi = RapidAPIProductClient()
+            if not self._use_serpapi:
+                log.info("ProductDBService: using RapidAPI Real-Time Product Search")
+        else:
+            self._rapidapi = None
 
         if self._use_ebay:
             from app.services.ebay_client import EbayClient
             self._ebay = EbayClient()
-            if not self._use_rapidapi and not self._use_serpapi:
+            if not self._use_serpapi and not self._use_rapidapi:
                 log.info("ProductDBService: using eBay Browse API")
         else:
             self._ebay = None
@@ -324,17 +325,17 @@ class ProductDBService:
         if cached:
             return cached
 
-        if self._use_rapidapi:
-            item = await self._rapidapi.get_product(product_id)
-            if item:
-                product = _map_rapidapi_product(item)
-                self._cache_product(product)
-                return product
-
         if self._use_serpapi:
             item = await self._serpapi.get_product(product_id)
             if item:
                 product = _map_serpapi_product(item)
+                self._cache_product(product)
+                return product
+
+        if self._use_rapidapi:
+            item = await self._rapidapi.get_product(product_id)
+            if item:
+                product = _map_rapidapi_product(item)
                 self._cache_product(product)
                 return product
 
@@ -357,14 +358,6 @@ class ProductDBService:
         if entry and time.time() < entry[1]:
             return entry[0]
 
-        if self._use_rapidapi:
-            items = await self._rapidapi.search(query, limit=20, filters=filters)
-            results = [_map_rapidapi_product(i).dict() for i in items]
-            for item in items:
-                self._cache_product(_map_rapidapi_product(item))
-            self._search_cache[cache_key] = (results, time.time() + _SEARCH_CACHE_TTL)
-            return results
-
         if self._use_serpapi:
             items = await self._serpapi.search(query, limit=20, filters=filters)
             results = []
@@ -372,6 +365,14 @@ class ProductDBService:
                 product = _map_serpapi_product(item)
                 self._cache_product(product)
                 results.append(product.dict())
+            self._search_cache[cache_key] = (results, time.time() + _SEARCH_CACHE_TTL)
+            return results
+
+        if self._use_rapidapi:
+            items = await self._rapidapi.search(query, limit=20, filters=filters)
+            results = [_map_rapidapi_product(i).dict() for i in items]
+            for item in items:
+                self._cache_product(_map_rapidapi_product(item))
             self._search_cache[cache_key] = (results, time.time() + _SEARCH_CACHE_TTL)
             return results
 
@@ -396,12 +397,12 @@ class ProductDBService:
         if entry and time.time() < entry[1]:
             return [Product(**d) for d in entry[0]]
 
-        if self._use_rapidapi:
-            items = await self._rapidapi.search(category, limit=limit)
-            products = [_map_rapidapi_product(i) for i in items]
-        elif self._use_serpapi:
+        if self._use_serpapi:
             items = await self._serpapi.search(category, limit=limit)
             products = [_map_serpapi_product(i) for i in items]
+        elif self._use_rapidapi:
+            items = await self._rapidapi.search(category, limit=limit)
+            products = [_map_rapidapi_product(i) for i in items]
         else:
             items = await self._ebay.search(category, limit=limit)
             products = [_map_ebay_item(i) for i in items]
