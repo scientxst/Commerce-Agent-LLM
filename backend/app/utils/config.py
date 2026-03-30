@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     TAX_RATE: float = 0.08
     ENVIRONMENT: str = "development"
     WARMUP_CACHE: bool = False
+    ALLOW_RAPIDAPI_FALLBACK: bool = False
 
     class Config:
         env_file = str(_ENV_FILE)

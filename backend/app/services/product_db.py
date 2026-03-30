@@ -8,6 +8,7 @@ Source priority:
 """
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -252,12 +253,33 @@ class ProductDBService:
     """
 
     def __init__(self, data_file: str = _DEFAULT_DATA_FILE):
-        self._use_rapidapi = bool(getattr(settings, "RAPIDAPI_KEY", ""))
-        self._use_serpapi = bool(getattr(settings, "SERPAPI_KEY", ""))
+        serp_key_names = {"serpapi_key", "serp_api_key", "serpapi_api_key"}
+        serp_env_key_present = any(
+            k.lower() in serp_key_names and bool(v)
+            for k, v in os.environ.items()
+        )
+        self._use_serpapi = bool(getattr(settings, "SERPAPI_KEY", "")) or serp_env_key_present
+
+        rapid_key_configured = bool(getattr(settings, "RAPIDAPI_KEY", ""))
+        allow_rapidapi_fallback = bool(getattr(settings, "ALLOW_RAPIDAPI_FALLBACK", False))
+        # RapidAPI is opt-in fallback only, and never used when SerpAPI is available.
+        self._use_rapidapi = rapid_key_configured and allow_rapidapi_fallback and not self._use_serpapi
+
         self._use_ebay = bool(
             getattr(settings, "EBAY_CLIENT_ID", "") and
             getattr(settings, "EBAY_CLIENT_SECRET", "")
         )
+
+        log.info(
+            "ProductDB providers: serpapi=%s rapidapi=%s (rapid_fallback_allowed=%s) ebay=%s warmup_cache=%s",
+            self._use_serpapi,
+            self._use_rapidapi,
+            allow_rapidapi_fallback,
+            self._use_ebay,
+            bool(getattr(settings, "WARMUP_CACHE", False)),
+        )
+        if rapid_key_configured and not allow_rapidapi_fallback:
+            log.info("RapidAPI key detected but fallback is disabled (ALLOW_RAPIDAPI_FALLBACK=false)")
 
         # id/sku → (Product, expires_at)
         self._product_cache: Dict[str, tuple] = {}
