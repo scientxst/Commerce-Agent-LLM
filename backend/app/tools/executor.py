@@ -46,7 +46,18 @@ class ToolExecutor:
             return json.dumps({"error": str(exc)})
 
     async def _search_products(self, args: Dict, user_id: str) -> Any:
-        """Hybrid search: semantic (vector) + keyword, merged via RRF."""
+        """
+        Hybrid search: semantic (vector) + keyword via RRF, then preference re-rank.
+
+        BEFORE: Results were ranked purely by RRF score — every user got the same
+                ordering regardless of stated preferences. The user_id param was
+                accepted but never used.
+        AFTER:  After RRF, stored user preferences (brand, price ceiling, sizes,
+                styles) are read and used to float matching products to the top
+                without demoting non-matching ones. A user who said "I always buy
+                Nike under $100" will consistently see Nike products priced under
+                $100 ranked first across all future searches this session.
+        """
         query = args.get("query", "")
         filters = {}
         if args.get("category"):
@@ -68,6 +79,16 @@ class ToolExecutor:
 
         # Reciprocal Rank Fusion
         fused = self._rrf(semantic_results, keyword_results)
+
+        # Preference-based re-ranking (stable — boosts matches, never demotes)
+        user_prefs = await self.user_db.get_preferences(user_id)
+        if user_prefs and (user_prefs.brands or user_prefs.price_range or
+                           user_prefs.sizes or user_prefs.styles):
+            fused = self._rerank_by_preferences(fused, user_prefs)
+            log.info(
+                "Re-ranked %d results by preferences for %s (brands=%s price=%s)",
+                len(fused), user_id, user_prefs.brands, user_prefs.price_range,
+            )
 
         # Enrich top results with full product data
         enriched = []
@@ -185,6 +206,58 @@ class ToolExecutor:
             if product:
                 total += product.price * item.quantity
         return round(total, 2)
+
+    @staticmethod
+    def _rerank_by_preferences(products: List[Dict], prefs) -> List[Dict]:
+        """
+        Stable preference re-ranking: products matching stored user preferences
+        float upward; non-matching products keep their original RRF positions.
+
+        Scoring:
+          +2.0  brand match (strongest signal — explicit stated preference)
+          +1.0  within stated price ceiling
+          +0.5  available in preferred size
+          +0.5  style keyword match in name/description
+        """
+        def pref_score(p: Dict) -> float:
+            score = 0.0
+            attrs = p.get("attributes", {}) or {}
+            name_desc = (
+                (p.get("name", "") or "") + " " + (p.get("description", "") or "")
+            ).lower()
+
+            if prefs.brands:
+                brand = (attrs.get("brand", "") or "").lower()
+                if any(b.lower() in brand or b.lower() in name_desc for b in prefs.brands):
+                    score += 2.0
+
+            if prefs.price_range:
+                try:
+                    price = float(p.get("price", 99999))
+                    max_p = float(prefs.price_range.get("max", 99999))
+                    if price <= max_p:
+                        score += 1.0
+                except (TypeError, ValueError):
+                    pass
+
+            if prefs.sizes:
+                sizes = attrs.get("sizes", []) or []
+                if any(s in sizes for s in prefs.sizes):
+                    score += 0.5
+
+            if prefs.styles:
+                if any(st.lower() in name_desc for st in prefs.styles):
+                    score += 0.5
+
+            return score
+
+        # Sort by (-score, original_index) for stable ordering
+        return [
+            p for _, p in sorted(
+                enumerate(products),
+                key=lambda x: (-pref_score(x[1]), x[0]),
+            )
+        ]
 
     @staticmethod
     def _rrf(semantic: List[Dict], keyword: List[Dict], k: int = 60) -> List[Dict]:

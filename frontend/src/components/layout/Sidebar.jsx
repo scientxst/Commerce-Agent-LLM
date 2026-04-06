@@ -1,11 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Sparkles, Home, Bookmark, ShoppingCart,
+  Home, Bookmark, ShoppingCart,
   User, Settings, HelpCircle, LogOut,
 } from 'lucide-react'
 import useAuthStore from '../../stores/authStore'
 import useCartStore from '../../stores/cartStore'
 import useSavedStore from '../../stores/savedStore'
+import ShopAssistLogo from '../ShopAssistLogo'
 
 const SIDEBAR_WIDTH = 102
 
@@ -88,17 +89,9 @@ export default function Sidebar({ activePanel, setActivePanel }) {
       <button
         onClick={() => { navigate('/'); setActivePanel(null) }}
         title="ShopAssist"
-        className="flex items-center justify-center rounded-xl mb-7 transition-all hover:opacity-90"
-        style={{
-          width: '48px',
-          height: '48px',
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(14,165,233,0.85))',
-          border: '1px solid rgba(99,102,241,0.5)',
-          boxShadow: '0 0 18px rgba(99,102,241,0.35)',
-          color: 'white',
-        }}
+        className="flex items-center justify-center mb-7 transition-all hover:opacity-90"
       >
-        <Sparkles size={22} />
+        <ShopAssistLogo size={44} />
       </button>
 
       {/* Main nav */}

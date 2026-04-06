@@ -16,7 +16,7 @@ from openai import AsyncOpenAI
 from app.core.guardrails import GuardrailsEngine
 from app.tools.executor import ToolExecutor
 from app.tools.registry import TOOL_DEFINITIONS
-from app.services.memory import MemoryService
+from app.services.memory import MemoryService, CoreferenceResolver
 from app.utils.config import settings
 
 log = logging.getLogger(__name__)
@@ -73,6 +73,7 @@ class OrchestrationEngine:
         self.executor = tool_executor
         self.memory = memory
         self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        self._resolver = CoreferenceResolver(self._client)
 
     async def process_message(
         self, user_id: str, session_id: str, message: str
@@ -87,6 +88,13 @@ class OrchestrationEngine:
 
         # ── Memory ──────────────────────────────────────────────────────────
         ctx = await self.memory.get_context(user_id, session_id)
+
+        # Resolve vague references ("it", "that one") using recent context
+        message = await self._resolver.resolve(message, ctx)
+
+        # Extract & persist any preference signals before routing
+        await self.memory.extract_and_update_preferences(ctx, message)
+
         await self.memory.add_message(ctx, "user", message)
 
         recent    = ", ".join(ctx.recent_products[-3:]) if ctx.recent_products else "none"

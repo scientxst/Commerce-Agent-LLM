@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useMsal } from '@azure/msal-react'
 import useAuthStore from '../stores/authStore'
+import ShopAssistLogo from '../components/ShopAssistLogo'
 
 // ── Icons ─────────────────────────────────────────────────────────
 
@@ -319,6 +320,372 @@ function SignInModal({ onClose }) {
   )
 }
 
+// ── Shared glass modal wrapper ────────────────────────────────────
+
+function GlassModal({ onClose, children, maxWidth = 'max-w-sm' }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className={`relative w-full ${maxWidth} overflow-hidden`}
+        style={{
+          background: 'rgba(10, 10, 20, 0.92)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(0, 210, 230, 0.25)',
+          boxShadow: '0 0 40px rgba(0, 200, 230, 0.2), 0 25px 60px rgba(0,0,0,0.6)',
+          borderRadius: '20px',
+        }}
+      >
+        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(0,210,230,0.6), transparent)' }} />
+        <div className="p-7">{children}</div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/25 hover:text-white/55 transition"
+          aria-label="Close"
+        >
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Features modal ────────────────────────────────────────────────
+
+const FEATURES = [
+  { icon: '🔍', title: 'Natural Language Search', desc: 'Describe what you want in plain English — brand, budget, size, color. No filters or menus.' },
+  { icon: '⚡', title: 'Instant Live Results', desc: 'Real-time product data pulled from multiple sources and ranked by relevance to your query.' },
+  { icon: '🧠', title: 'AI Recommendations', desc: 'The assistant understands context mid-session — "show me something cheaper" just works.' },
+  { icon: '🛒', title: 'Smart Cart', desc: 'Add items conversationally: "add the blue one in size M". No clicking through product pages.' },
+  { icon: '💬', title: 'Conversational Memory', desc: 'Follow-up questions, comparisons, and refinements — the AI remembers what you asked.' },
+  { icon: '🔒', title: 'Secure Checkout', desc: 'Stripe-powered checkout with per-merchant order dispatching and real-time confirmation.' },
+]
+
+function FeaturesModal({ onClose }) {
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-2xl">
+      <h2 className="text-lg font-bold text-white mb-1">What ShopAssist can do</h2>
+      <p className="text-xs text-white/40 mb-5">AI-powered shopping, built for how people actually think</p>
+      <div className="grid grid-cols-2 gap-3">
+        {FEATURES.map(({ icon, title, desc }) => (
+          <div
+            key={title}
+            className="p-4 rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <div className="text-2xl mb-2">{icon}</div>
+            <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>{desc}</p>
+          </div>
+        ))}
+      </div>
+    </GlassModal>
+  )
+}
+
+// ── Pricing modal ─────────────────────────────────────────────────
+
+const PLANS = [
+  {
+    name: 'Guest',
+    price: 'Free',
+    sub: 'No account needed',
+    highlight: false,
+    features: ['AI product search', 'Live results', 'Basic cart', 'Guest session only'],
+    cta: 'Start searching',
+  },
+  {
+    name: 'Pro',
+    price: '$9',
+    sub: 'per month',
+    highlight: true,
+    features: ['Everything in Guest', 'Saved items & history', 'Multi-device sync', 'Priority AI results', 'Early feature access'],
+    cta: 'Get Pro',
+  },
+  {
+    name: 'Enterprise',
+    price: 'Custom',
+    sub: 'contact us',
+    highlight: false,
+    features: ['Everything in Pro', 'REST API access', 'Custom integrations', 'White-label option', 'Dedicated support'],
+    cta: 'Contact us',
+  },
+]
+
+function Check() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(0,210,235,0.85)" strokeWidth="2.5" strokeLinecap="round" className="mt-0.5 shrink-0">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function PricingModal({ onClose }) {
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-3xl">
+      <h2 className="text-lg font-bold text-white mb-1">Simple pricing</h2>
+      <p className="text-xs text-white/40 mb-6">Start free. Upgrade when you're ready.</p>
+      <div className="grid grid-cols-3 gap-3">
+        {PLANS.map((plan) => (
+          <div
+            key={plan.name}
+            className="p-5 rounded-xl flex flex-col relative"
+            style={{
+              background: plan.highlight ? 'rgba(0,200,230,0.07)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${plan.highlight ? 'rgba(0,210,230,0.35)' : 'rgba(255,255,255,0.09)'}`,
+              boxShadow: plan.highlight ? '0 0 24px rgba(0,200,230,0.12)' : 'none',
+            }}
+          >
+            {plan.highlight && (
+              <div
+                className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, rgba(0,200,230,0.85), rgba(0,150,210,0.95))', color: 'white' }}
+              >
+                Most Popular
+              </div>
+            )}
+            <p className="text-sm font-bold text-white mb-1">{plan.name}</p>
+            <div className="flex items-baseline gap-1 mb-0.5">
+              <span className="text-2xl font-bold text-white">{plan.price}</span>
+              {plan.price !== 'Free' && plan.price !== 'Custom' && (
+                <span className="text-xs text-white/40">{plan.sub}</span>
+              )}
+            </div>
+            <p className="text-xs text-white/30 mb-4">{plan.price === 'Free' || plan.price === 'Custom' ? plan.sub : ''}</p>
+            <ul className="space-y-2 flex-1 mb-5">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.58)' }}>
+                  <Check />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <button
+              className="w-full py-2 rounded-xl text-xs font-semibold transition-all"
+              style={{
+                background: plan.highlight ? 'linear-gradient(135deg, rgba(0,200,230,0.28), rgba(0,150,210,0.38))' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${plan.highlight ? 'rgba(0,210,230,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                color: 'white',
+              }}
+            >
+              {plan.cta}
+            </button>
+          </div>
+        ))}
+      </div>
+    </GlassModal>
+  )
+}
+
+// ── About modal ───────────────────────────────────────────────────
+
+const TECH = ['React', 'FastAPI', 'OpenAI GPT-4o', 'WebSockets', 'SerpAPI', 'Stripe', 'Tailwind CSS', 'Python']
+
+function AboutModal({ onClose }) {
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-md">
+      <div className="text-center mb-6">
+        <div className="text-4xl mb-3">🛍️</div>
+        <h2 className="text-lg font-bold text-white">About ShopAssist</h2>
+        <p className="text-xs text-white/40 mt-1">Built at the intersection of AI and e-commerce</p>
+      </div>
+      <p className="text-sm leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.58)' }}>
+        ShopAssist is an AI-native shopping assistant that understands how people actually shop.
+        Instead of filters and dropdowns, just describe what you're looking for — and the AI pulls
+        live results, compares options, and guides you to checkout conversationally.
+      </p>
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>Built with</p>
+        <div className="flex flex-wrap gap-2">
+          {TECH.map((t) => (
+            <span
+              key={t}
+              className="px-2.5 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(0,200,230,0.08)', border: '1px solid rgba(0,210,230,0.2)', color: 'rgba(255,255,255,0.65)' }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div
+        className="p-4 rounded-xl text-xs leading-relaxed"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)' }}
+      >
+        🎓 Built as a capstone project exploring agentic AI systems, RAG architecture, real-time WebSocket streaming, and conversational product intelligence.
+      </div>
+    </GlassModal>
+  )
+}
+
+// ── Privacy modal ────────────────────────────────────────────────
+
+function PrivacyModal({ onClose }) {
+  const sections = [
+    {
+      title: '📦 What we collect',
+      body: 'Search queries and filters you enter, session preferences (brand, size, budget), OAuth profile info (name and email) if you sign in, and cart activity for the duration of your session.',
+    },
+    {
+      title: '🔍 How we use it',
+      body: 'To personalise search results, re-rank products by your stated preferences, maintain your cart across the session, and improve the quality of AI recommendations.',
+    },
+    {
+      title: '🔗 Third-party services',
+      body: 'Google / Microsoft OAuth for sign-in, SerpAPI for live product data, and Stripe for checkout. Each operates under their own privacy policy. We never sell your data.',
+    },
+    {
+      title: '🗂 Data retention',
+      body: 'Guest sessions are entirely in-memory and discarded when the session ends. Signed-in accounts retain preferences across sessions. You can delete your account at any time.',
+    },
+    {
+      title: '✅ Your rights',
+      body: 'You can use ShopAssist as a guest with zero data stored. If signed in, you may request access, correction, or deletion of your data by contacting us.',
+    },
+  ]
+
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-lg">
+      <h2 className="text-lg font-bold text-white mb-1">Privacy Policy</h2>
+      <p className="text-xs text-white/40 mb-5">Last updated April 2026 · We keep it simple.</p>
+      <div className="space-y-4">
+        {sections.map(({ title, body }) => (
+          <div key={title} className="p-3.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-xs font-semibold text-white mb-1">{title}</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.48)' }}>{body}</p>
+          </div>
+        ))}
+      </div>
+    </GlassModal>
+  )
+}
+
+// ── Terms modal ───────────────────────────────────────────────────
+
+function TermsModal({ onClose }) {
+  const sections = [
+    {
+      title: '1. Acceptance',
+      body: 'By accessing or using ShopAssist you agree to these terms. If you disagree, please discontinue use. Guest access requires no account but is still subject to these terms.',
+    },
+    {
+      title: '2. What ShopAssist does',
+      body: 'ShopAssist is an AI-powered shopping assistant. It searches live product databases, provides recommendations, and facilitates checkout. It does not itself sell products — transactions are fulfilled by third-party merchants.',
+    },
+    {
+      title: '3. Permitted use',
+      body: 'You may use ShopAssist for personal, non-commercial shopping purposes. You agree not to scrape, reverse-engineer, or abuse the platform, its APIs, or the AI system in any way.',
+    },
+    {
+      title: '4. AI limitations',
+      body: 'Product information (prices, stock, descriptions) is sourced live from third-party APIs and may change. ShopAssist AI responses are not guaranteed to be accurate. Always verify details before purchasing.',
+    },
+    {
+      title: '5. Limitation of liability',
+      body: 'ShopAssist is provided "as is" without warranties of any kind. We are not liable for purchase decisions made based on AI recommendations, third-party merchant fulfilment, or data inaccuracies.',
+    },
+    {
+      title: '6. Changes',
+      body: 'We may update these terms at any time. Continued use after changes constitutes acceptance. Check this page periodically for updates.',
+    },
+  ]
+
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-lg">
+      <h2 className="text-lg font-bold text-white mb-1">Terms of Service</h2>
+      <p className="text-xs text-white/40 mb-5">Last updated April 2026 · Please read carefully.</p>
+      <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+        {sections.map(({ title, body }) => (
+          <div key={title} className="p-3.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-xs font-semibold text-white mb-1">{title}</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.48)' }}>{body}</p>
+          </div>
+        ))}
+      </div>
+    </GlassModal>
+  )
+}
+
+// ── Contact modal ─────────────────────────────────────────────────
+
+function ContactModal({ onClose }) {
+  const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [sent, setSent] = useState(false)
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    setSent(true)
+  }
+
+  return (
+    <GlassModal onClose={onClose} maxWidth="max-w-md">
+      {sent ? (
+        <div className="text-center py-6">
+          <div className="text-4xl mb-4">✅</div>
+          <h2 className="text-lg font-bold text-white mb-2">Message received!</h2>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.48)' }}>
+            We'll get back to you at <span className="text-white/70">{form.email}</span> within 24–48 hours.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all"
+            style={{ background: 'linear-gradient(135deg, rgba(0,200,230,0.25), rgba(0,150,210,0.35))', border: '1px solid rgba(0,210,230,0.4)', color: 'white' }}
+          >
+            Close
+          </button>
+        </div>
+      ) : (
+        <>
+          <h2 className="text-lg font-bold text-white mb-1">Contact us</h2>
+          <p className="text-xs text-white/40 mb-5">We read every message — usually reply within 24 hours.</p>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Name</label>
+              <input
+                type="text" required value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Your name"
+                className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-white/25 focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Email</label>
+              <input
+                type="email" required value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-white/25 focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Message</label>
+              <textarea
+                required rows={4} value={form.message}
+                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+                placeholder="What can we help you with?"
+                className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/25 focus:outline-none resize-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] mt-1"
+              style={{ background: 'linear-gradient(135deg, rgba(0,200,230,0.3), rgba(0,150,210,0.4))', border: '1px solid rgba(0,210,230,0.4)', color: 'white' }}
+            >
+              Send message
+            </button>
+          </form>
+        </>
+      )}
+    </GlassModal>
+  )
+}
+
 // ── Landing Page ──────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -329,7 +696,18 @@ const CATEGORIES = [
 
 export default function LoginPage() {
   const [showSignIn, setShowSignIn] = useState(false)
+  const [activeModal, setActiveModal] = useState(null) // 'features' | 'pricing' | 'about'
   const [activeTab, setActiveTab] = useState('Tech')
+  const [searchQuery, setSearchQuery] = useState('')
+  const { continueAsGuest } = useAuthStore()
+  const navigate = useNavigate()
+
+  function handleSearchSubmit() {
+    if (!searchQuery.trim()) return
+    sessionStorage.setItem('pendingQuery', searchQuery.trim())
+    continueAsGuest()
+    navigate('/', { replace: true })
+  }
 
   return (
     <div
@@ -355,25 +733,28 @@ export default function LoginPage() {
 
       {/* ── Navigation ── */}
       <nav className="flex items-center justify-between px-8 py-5 relative z-10">
-        <span
-          className="text-xl font-bold tracking-tight"
-          style={{ color: 'white', letterSpacing: '-0.02em' }}
-        >
-          ShopAssist
-        </span>
+        <div className="flex items-center gap-2.5">
+          <ShopAssistLogo />
+          <span
+            className="text-xl font-bold tracking-tight"
+            style={{ color: 'white', letterSpacing: '-0.02em' }}
+          >
+            ShopAssist
+          </span>
+        </div>
 
         <div className="flex items-center gap-8">
           {['Features', 'Pricing', 'About'].map((link) => (
-            <a
+            <button
               key={link}
-              href="#"
+              onClick={() => setActiveModal(link.toLowerCase())}
               className="text-sm font-medium transition-colors"
               style={{ color: 'rgba(255,255,255,0.5)' }}
-              onMouseEnter={(e) => (e.target.style.color = 'rgba(255,255,255,0.9)')}
-              onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.5)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
             >
               {link}
-            </a>
+            </button>
           ))}
           <button
             onClick={() => setShowSignIn(true)}
@@ -460,11 +841,23 @@ export default function LoginPage() {
             <input
               type="text"
               placeholder="Search for anything..."
-              onClick={() => setShowSignIn(true)}
-              readOnly
-              className="flex-1 bg-transparent border-none outline-none text-base cursor-pointer"
-              style={{ color: 'rgba(255,255,255,0.4)', caretColor: 'transparent' }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit() }}
+              className="flex-1 bg-transparent border-none outline-none text-base"
+              style={{ color: 'rgba(255,255,255,0.85)', caretColor: 'rgba(0,210,235,0.9)' }}
             />
+            {searchQuery.trim() && (
+              <button
+                onClick={handleSearchSubmit}
+                className="shrink-0 p-2 rounded-xl transition-colors"
+                style={{ background: 'rgba(0,200,230,0.15)', border: '1px solid rgba(0,200,230,0.3)' }}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="rgba(0,210,235,0.9)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -489,16 +882,16 @@ export default function LoginPage() {
       <footer className="py-6 text-center relative z-10">
         <div className="flex justify-center gap-6 mb-2">
           {['Privacy', 'Terms', 'Contact'].map((link) => (
-            <a
+            <button
               key={link}
-              href="#"
+              onClick={() => setActiveModal(link.toLowerCase())}
               className="text-xs transition-colors"
               style={{ color: 'rgba(255,255,255,0.25)' }}
-              onMouseEnter={(e) => (e.target.style.color = 'rgba(255,255,255,0.5)')}
-              onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.25)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
             >
               {link}
-            </a>
+            </button>
           ))}
         </div>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.18)' }}>
@@ -508,6 +901,16 @@ export default function LoginPage() {
 
       {/* Sign-in modal */}
       {showSignIn && <SignInModal onClose={() => setShowSignIn(false)} />}
+
+      {/* Nav modals */}
+      {activeModal === 'features' && <FeaturesModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'pricing'  && <PricingModal  onClose={() => setActiveModal(null)} />}
+      {activeModal === 'about'    && <AboutModal    onClose={() => setActiveModal(null)} />}
+
+      {/* Footer modals */}
+      {activeModal === 'privacy' && <PrivacyModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'terms'   && <TermsModal   onClose={() => setActiveModal(null)} />}
+      {activeModal === 'contact' && <ContactModal onClose={() => setActiveModal(null)} />}
     </div>
   )
 }

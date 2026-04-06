@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Send, Sparkles, Search, PanelRightOpen } from 'lucide-react'
+import { Send, Search, PanelRightOpen } from 'lucide-react'
+import ShopAssistLogo from '../ShopAssistLogo'
 import useCartStore from '../../stores/cartStore'
 import Message from './Message'
 import ProductGrid from '../product/ProductGrid'
@@ -25,11 +26,12 @@ export default function ChatInterface() {
   const sessionIdRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const inputRef = useRef(null)
+  const pendingQuerySentRef = useRef(false)
 
   // Generate stable session ID
   useEffect(() => {
     if (!sessionIdRef.current) {
-      sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
     }
   }, [])
 
@@ -116,6 +118,25 @@ export default function ChatInterface() {
     }
   }
 
+  // Auto-send query from landing page (guest flow)
+  useEffect(() => {
+    if (!isConnected || pendingQuerySentRef.current) return
+    const pending = sessionStorage.getItem('pendingQuery')
+    if (!pending) return
+    sessionStorage.removeItem('pendingQuery')
+    pendingQuerySentRef.current = true
+    const userMessage = {
+      id: `msg_${Date.now()}`,
+      role: 'user',
+      content: pending,
+      products: [],
+      isStreaming: false,
+    }
+    setMessages([userMessage])
+    setIsLoading(true)
+    wsRef.current.send(JSON.stringify({ type: 'message', content: pending }))
+  }, [isConnected])
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -180,9 +201,7 @@ export default function ChatInterface() {
           {/* Panel Header */}
           <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-sm">
-                <Sparkles size={18} />
-              </div>
+              <ShopAssistLogo size={36} />
               <div>
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Shopping Assistant</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Ask naturally — we’ll surface the best matches.</p>
@@ -208,8 +227,8 @@ export default function ChatInterface() {
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center">
                 <div className="max-w-md">
-                  <div className="mx-auto h-12 w-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-2xl border border-purple-100 dark:border-purple-800">
-                    👜
+                  <div className="mx-auto flex items-center justify-center">
+                    <ShopAssistLogo size={56} />
                   </div>
                   <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">Welcome to ShopAssist</h3>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
