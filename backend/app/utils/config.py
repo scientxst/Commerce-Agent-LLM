@@ -1,6 +1,8 @@
 """Configuration management."""
+import re
 from pathlib import Path
-from pydantic import AliasChoices, Field
+from typing import List
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings
 
 # Walk up from this file to find the .env at project root
@@ -47,12 +49,60 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
 
     # Auth / JWT
-    JWT_SECRET: str = "change-me-in-production-use-a-long-random-secret"
+    JWT_SECRET: str
     GOOGLE_CLIENT_ID: str = ""
     MICROSOFT_CLIENT_ID: str = ""
 
-    # Frontend URL (used for Stripe redirect URLs)
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def _strong_jwt_secret(cls, v: str) -> str:
+        if not v or len(v) < 32 or "change-me" in v.lower():
+            raise ValueError(
+                "JWT_SECRET must be set to a random value of at least 32 characters. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        return v
+
+    # Frontend URL (used for Stripe redirect URLs).
+    # Accepts a single origin OR a comma-separated list (first one is canonical,
+    # used for Stripe success/cancel redirects).
     FRONTEND_URL: str = "http://localhost:3000"
+
+    # Optional regex for preview-deploy origins (e.g. Vercel branch URLs).
+    # Example: r"^https://commerce-agent-[a-z0-9-]+\.vercel\.app$"
+    FRONTEND_URL_PATTERN: str = ""
+
+    @field_validator("FRONTEND_URL")
+    @classmethod
+    def _validate_frontend_url(cls, v: str) -> str:
+        origins = [o.strip().rstrip("/") for o in v.split(",") if o.strip()]
+        if not origins:
+            raise ValueError("FRONTEND_URL must contain at least one origin")
+        url_re = re.compile(r"^https?://[A-Za-z0-9.\-:]+$")
+        for o in origins:
+            if not url_re.match(o):
+                raise ValueError(f"FRONTEND_URL origin is not a valid URL: {o!r}")
+        return ",".join(origins)
+
+    @field_validator("FRONTEND_URL_PATTERN")
+    @classmethod
+    def _validate_frontend_url_pattern(cls, v: str) -> str:
+        if not v:
+            return v
+        try:
+            re.compile(v)
+        except re.error as exc:
+            raise ValueError(f"FRONTEND_URL_PATTERN is not a valid regex: {exc}")
+        return v
+
+    @property
+    def frontend_origins(self) -> List[str]:
+        return [o.strip() for o in self.FRONTEND_URL.split(",") if o.strip()]
+
+    @property
+    def canonical_frontend_url(self) -> str:
+        """First origin in FRONTEND_URL, used for Stripe success/cancel URLs."""
+        return self.frontend_origins[0] if self.frontend_origins else "http://localhost:3000"
 
     # Application
     MAX_CONTEXT_TOKENS: int = 8000

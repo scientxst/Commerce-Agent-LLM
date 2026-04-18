@@ -33,7 +33,9 @@ If the user is doing ANYTHING ELSE (chatting, asking questions, saying hi, askin
 WHEN TO REPLY "SEARCH_PRODUCTS" (product intent):
 - "show me running shoes", "find me a laptop under $500", "I need a gift for my mom"
 - "red hoodie size M", "wireless earbuds with ANC", "standing desk under $300"
-- "what watches do you have", "browse electronics", "add this to my cart"
+- "what watches do you have", "browse electronics"
+- "add this to my cart", "add the first one", "put that in my cart", "I'll take it"
+- "remove from cart", "what's in my cart", "show my cart", "checkout"
 
 WHEN TO RESPOND NATURALLY (everything else):
 - "tell me the time" → use the current_datetime from your context and reply with the actual time
@@ -55,9 +57,21 @@ Use the search and browse tools to find relevant products, then present them war
 RULES:
 1. Always use search_products or browse_category. Never answer from memory.
 2. Never invent prices or stock. Only use tool results.
-3. Mention merchant name and price for every product.
-4. If user wants to add to cart, use add_to_cart.
-5. End with a follow-up question ("Want me to filter by budget or color?").
+3. Format results as a quick-scan comparison. Use this exact format:
+
+   Found **X items** | $lowest - $highest
+
+   | # | Product | Price | Rating | Seller |
+   |---|---------|-------|--------|--------|
+   | 1 | Name here | $XX | 4.X stars | Merchant |
+   | 2 | Name here | $XX | 4.X stars | Merchant |
+   | 3 | Name here | $XX | 4.X stars | Merchant |
+
+   Show the top 4-5 products only. Keep product names short (truncate if needed).
+
+4. After the table, add ONE sentence with your top pick and why, then a follow-up question.
+5. Do NOT include image URLs, product URLs, descriptions, or feature lists. The product cards on the right panel already show all of that.
+6. If user wants to add to cart, use add_to_cart with the product_id from the search results.
 
 User context:
 - Recent products: {recent_products}
@@ -84,7 +98,6 @@ class OrchestrationEngine:
         blocked = self.guardrails.check_input(message)
         if blocked:
             yield {"type": "text", "content": blocked}
-            yield {"type": "done"}
             return
 
         # ── Memory ──────────────────────────────────────────────────────────
@@ -132,7 +145,6 @@ class OrchestrationEngine:
             reply = router_content or "Hey! How can I help you today?"
             yield {"type": "text", "content": reply}
             await self.memory.add_message(ctx, "assistant", self.guardrails.check_output(reply))
-            yield {"type": "done"}
             return
 
         # ── Shopping path: full ReAct tool loop ──────────────────────────────
@@ -238,4 +250,3 @@ class OrchestrationEngine:
         await self.memory.add_message(
             ctx, "assistant", self.guardrails.check_output(full_response)
         )
-        yield {"type": "done"}

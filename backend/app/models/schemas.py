@@ -1,7 +1,13 @@
 """Data models for the shopping assistant."""
+import re
 from enum import Enum
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# Reusable patterns for narrow-scoped string fields crossing the network
+# boundary. The review flagged these as missing (finding 2.6).
+_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,80}$")
+_PRODUCT_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,80}$")
 
 
 class Intent(str, Enum):
@@ -110,10 +116,26 @@ class ConversationContext(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    user_id: str
-    session_id: str
-    message: str
-    category: Optional[str] = None
+    session_id: str = Field(max_length=80)
+    message: str = Field(min_length=1, max_length=4000)
+    category: Optional[str] = Field(default=None, max_length=40)
+    idempotency_key: Optional[str] = Field(default=None, max_length=80)
+
+    @field_validator("session_id")
+    @classmethod
+    def _valid_session_id(cls, v: str) -> str:
+        if not _SESSION_ID_RE.match(v):
+            raise ValueError("session_id must be alphanumeric / _ / - only, up to 80 chars")
+        return v
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def _valid_idem_key(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not _SESSION_ID_RE.match(v):
+            raise ValueError("idempotency_key must be alphanumeric / _ / -")
+        return v
 
 
 class ChatResponse(BaseModel):
@@ -123,24 +145,36 @@ class ChatResponse(BaseModel):
 
 
 class AddToCartRequest(BaseModel):
-    user_id: str
-    product_id: str
-    quantity: int = 1
-    selected_size: Optional[str] = None
-    selected_color: Optional[str] = None
+    product_id: str = Field(max_length=80)
+    quantity: int = Field(default=1, ge=1, le=99)
+    selected_size: Optional[str] = Field(default=None, max_length=40)
+    selected_color: Optional[str] = Field(default=None, max_length=40)
+
+    @field_validator("product_id")
+    @classmethod
+    def _valid_product_id(cls, v: str) -> str:
+        if not _PRODUCT_ID_RE.match(v):
+            raise ValueError("product_id must be alphanumeric / _ / -")
+        return v
 
 
 class UpdateCartRequest(BaseModel):
-    quantity: int
+    quantity: int = Field(ge=0, le=99)
 
 
 class CheckoutRequest(BaseModel):
-    user_id: str
-    shipping_name: str = ""
-    shipping_address: str = ""
-    shipping_city: str = ""
-    shipping_state: str = ""
-    shipping_zip: str = ""
+    shipping_name: str = Field(default="", max_length=200)
+    shipping_address: str = Field(default="", max_length=500)
+    shipping_city: str = Field(default="", max_length=100)
+    shipping_state: str = Field(default="", max_length=100)
+    shipping_zip: str = Field(default="", max_length=20)
+
+
+class CartMergeRequest(BaseModel):
+    """Merge a guest cart into the authenticated user's cart. Accepts the
+    previous guest JWT in the body; server verifies it was a guest token
+    before copying items."""
+    guest_token: str = Field(min_length=20, max_length=2000)
 
 
 class CheckoutResponse(BaseModel):

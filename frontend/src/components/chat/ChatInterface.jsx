@@ -2,8 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Send, Search, PanelRightOpen } from 'lucide-react'
 import ShopAssistLogo from '../ShopAssistLogo'
 import useCartStore from '../../stores/cartStore'
+import useAuthStore from '../../stores/authStore'
 import Message from './Message'
 import ProductGrid from '../product/ProductGrid'
+
+function newIdemKey() {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '')
+  } catch {}
+  return `k_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+}
 
 const SUGGESTIONS = [
   'red running shoes under $80',
@@ -15,11 +23,21 @@ const SUGGESTIONS = [
 ]
 // testing
 export default function ChatInterface() {
-  const { userId, refreshCart } = useCartStore()
-  const [messages, setMessages] = useState([])
+  const { refreshCart } = useCartStore()
+  const token = useAuthStore((s) => s.token)
+  const logout = useAuthStore((s) => s.logout)
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('chatMessages')
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
+  const [isAuthed, setIsAuthed] = useState(false)
+  const [showDisconnectBanner, setShowDisconnectBanner] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   const [activeCategory, setActiveCategory] = useState(() => {
     const saved = sessionStorage.getItem('pendingCategory')
@@ -32,32 +50,108 @@ export default function ChatInterface() {
   const reconnectTimeoutRef = useRef(null)
   const inputRef = useRef(null)
   const pendingQuerySentRef = useRef(false)
+  const pendingMessageRef = useRef(null)
+  const retryCountRef = useRef(0)
+  const heartbeatRef = useRef(null)
+  const heartbeatTimeoutRef = useRef(null)
+  const loadingTimeoutRef = useRef(null)
+  const disconnectBannerTimeoutRef = useRef(null)
 
-  // Generate stable session ID
+  // Generate stable session ID (persisted across page reloads)
   useEffect(() => {
     if (!sessionIdRef.current) {
-      sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+      const saved = sessionStorage.getItem('chatSessionId')
+      if (saved) {
+        sessionIdRef.current = saved
+      } else {
+        sessionIdRef.current = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+        sessionStorage.setItem('chatSessionId', sessionIdRef.current)
+      }
     }
   }, [])
 
   // WebSocket connection
   useEffect(() => {
-    const connectWebSocket = () => {
-      if (!userId || !sessionIdRef.current) return
+    let cancelled = false
 
+    const connectWebSocket = () => {
+      if (cancelled || !token || !sessionIdRef.current) return
+
+      // Close any existing connection before opening a new one.
+      // Null ALL handlers so a late onopen/onmessage from the old socket
+      // cannot clobber heartbeatRef/wsRef on the new socket.
+      if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) {
+        wsRef.current.onopen = null
+        wsRef.current.onmessage = null
+        wsRef.current.onerror = null
+        wsRef.current.onclose = null
+        wsRef.current.close()
+      }
+
+      // WS auth is via first-frame `{type:"auth",token}` (server also still
+      // accepts ?token= as a deprecated fallback for one release).
       const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
-      const wsUrl = `${wsBase}/ws/chat/${userId}/${sessionIdRef.current}`
+      const wsUrl = `${wsBase}/ws/chat/${sessionIdRef.current}`
 
       try {
         const ws = new WebSocket(wsUrl)
 
         ws.onopen = () => {
+          if (cancelled) { ws.close(); return }
           setIsConnected(true)
-          console.log('WebSocket connected')
+          // Clear any pending "connection lost" banner trigger
+          if (disconnectBannerTimeoutRef.current) {
+            clearTimeout(disconnectBannerTimeoutRef.current)
+            disconnectBannerTimeoutRef.current = null
+          }
+          setShowDisconnectBanner(false)
+          console.log('WebSocket open — sending auth frame')
+
+          // Send auth as the first frame. Server replies {type:"auth_ok"}
+          // or closes with 4401. We defer heartbeats + message sends until
+          // auth_ok arrives.
+          try {
+            ws.send(JSON.stringify({ type: 'auth', token }))
+          } catch (err) {
+            console.error('Failed to send auth frame:', err)
+          }
         }
 
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
+          // Any inbound message proves the server is alive — cancel pending timeout
+          if (heartbeatTimeoutRef.current) clearTimeout(heartbeatTimeoutRef.current)
+          let data
+          try { data = JSON.parse(event.data) } catch { return }
+          if (data.type === 'pong') return
+
+          if (data.type === 'auth_ok') {
+            setIsAuthed(true)
+            // Start heartbeat only after auth succeeds
+            if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+            if (heartbeatTimeoutRef.current) clearTimeout(heartbeatTimeoutRef.current)
+            heartbeatRef.current = setInterval(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }))
+                if (heartbeatTimeoutRef.current) clearTimeout(heartbeatTimeoutRef.current)
+                heartbeatTimeoutRef.current = setTimeout(() => {
+                  console.log('Heartbeat timeout — closing stale connection')
+                  ws.close()
+                }, 30000)
+              }
+            }, 15000)
+            return
+          }
+
+          if (data.type === 'error' && data.code === 'concurrency_cap') {
+            setMessages((prev) => [...prev, {
+              id: `msg_cap_${Date.now()}`,
+              role: 'assistant',
+              content: data.message || 'Too many active connections.',
+              products: [], isStreaming: false,
+            }])
+            return
+          }
+
           handleMessage(data)
         }
 
@@ -66,26 +160,75 @@ export default function ChatInterface() {
           setIsConnected(false)
         }
 
-        ws.onclose = () => {
+        ws.onclose = (ev) => {
           setIsConnected(false)
-          console.log('WebSocket disconnected, reconnecting in 3s...')
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
+          setIsAuthed(false)
+          if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+          if (heartbeatTimeoutRef.current) clearTimeout(heartbeatTimeoutRef.current)
+
+          // 4401 = auth rejected (invalid/expired token). Stop the retry
+          // loop, surface a "session expired" prompt, and clear auth state.
+          if (ev && ev.code === 4401) {
+            setSessionExpired(true)
+            setShowDisconnectBanner(false)
+            setIsLoading(false)
+            logout()
+            return
+          }
+
+          // Only show the "Connection lost" banner if we stay disconnected
+          // for >1.5s. Brief reconnects (token change, normal hiccup) pass
+          // without a visible flicker.
+          if (disconnectBannerTimeoutRef.current) clearTimeout(disconnectBannerTimeoutRef.current)
+          disconnectBannerTimeoutRef.current = setTimeout(() => {
+            setShowDisconnectBanner(true)
+          }, 1500)
+          setIsLoading((prev) => {
+            if (prev) {
+              setMessages((msgs) => {
+                const last = msgs[msgs.length - 1]
+                if (last && last.role === 'assistant' && last.isStreaming) {
+                  return msgs.map((msg, idx) =>
+                    idx === msgs.length - 1 ? { ...msg, isStreaming: false } : msg
+                  )
+                }
+                return msgs
+              })
+            }
+            return false
+          })
+          if (!cancelled) {
+            console.log('WebSocket disconnected, reconnecting in 3s...')
+            reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
+          }
         }
 
         wsRef.current = ws
       } catch (error) {
         console.error('Failed to connect WebSocket:', error)
-        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
+        if (!cancelled) {
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
+        }
       }
     }
 
     connectWebSocket()
 
     return () => {
-      if (wsRef.current) wsRef.current.close()
+      cancelled = true
+      if (wsRef.current) {
+        wsRef.current.onopen = null
+        wsRef.current.onmessage = null
+        wsRef.current.onerror = null
+        wsRef.current.onclose = null
+        wsRef.current.close()
+      }
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current)
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+      if (heartbeatTimeoutRef.current) clearTimeout(heartbeatTimeoutRef.current)
+      if (disconnectBannerTimeoutRef.current) clearTimeout(disconnectBannerTimeoutRef.current)
     }
-  }, [userId])
+  }, [token])
 
   // Handle WebSocket messages
   const handleMessage = (data) => {
@@ -119,13 +262,16 @@ export default function ChatInterface() {
     } else if (data.type === 'done') {
       setMessages((prev) => prev.map((msg, idx) => (idx === prev.length - 1 ? { ...msg, isStreaming: false } : msg)))
       setIsLoading(false)
+      pendingMessageRef.current = null
+      retryCountRef.current = 0
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current)
       refreshCart()
     }
   }
 
   // Auto-send query from landing page (guest flow)
   useEffect(() => {
-    if (!isConnected || pendingQuerySentRef.current) return
+    if (!isAuthed || pendingQuerySentRef.current) return
     const pending = sessionStorage.getItem('pendingQuery')
     if (!pending) return
     const pendingCat = sessionStorage.getItem('pendingCategory') || 'tech'
@@ -142,8 +288,16 @@ export default function ChatInterface() {
     }
     setMessages([userMessage])
     setIsLoading(true)
-    wsRef.current.send(JSON.stringify({ type: 'message', content: pending, category: pendingCat }))
-  }, [isConnected])
+    wsRef.current.send(JSON.stringify({
+      type: 'message', content: pending, category: pendingCat,
+      idempotency_key: newIdemKey(),
+    }))
+  }, [isAuthed])
+
+  // Persist messages to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('chatMessages', JSON.stringify(messages))
+  }, [messages])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -168,6 +322,7 @@ export default function ChatInterface() {
 
   const sendMessage = () => {
     if (!input.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+    if (!isAuthed) return
 
     const userMessage = {
       id: `msg_${Date.now()}`,
@@ -181,11 +336,27 @@ export default function ChatInterface() {
     setInput('')
     setIsLoading(true)
 
+    pendingMessageRef.current = { content: input, category: activeCategory }
+
+    // Safety timeout: if no response in 30s, unblock UI
+    if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current)
+    loadingTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false)
+      pendingMessageRef.current = null
+      retryCountRef.current = 0
+      setMessages((prev) => [...prev, {
+        id: `msg_timeout_${Date.now()}`, role: 'assistant',
+        content: 'The request timed out. Please try again or reload the page.',
+        products: [], isStreaming: false,
+      }])
+    }, 30000)
+
     wsRef.current.send(
       JSON.stringify({
         type: 'message',
         content: input,
         category: activeCategory,
+        idempotency_key: newIdemKey(),
       })
     )
   }
@@ -230,6 +401,20 @@ export default function ChatInterface() {
               </span>
             </div>
           </div>
+
+          {/* Reconnection banner (debounced: only after 1.5s of disconnect) */}
+          {showDisconnectBanner && !sessionExpired && messages.length > 0 && (
+            <div className="px-5 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs text-center border-b border-amber-200 dark:border-amber-800">
+              Connection lost. Reconnecting...
+            </div>
+          )}
+
+          {/* Session expired (token rejected; reconnect loop stopped) */}
+          {sessionExpired && (
+            <div className="px-5 py-2 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-xs text-center border-b border-rose-200 dark:border-rose-800">
+              Session expired. Please refresh the page to sign in again.
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto chat-scroll px-5 py-4 space-y-4">

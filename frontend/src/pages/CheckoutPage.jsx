@@ -9,7 +9,7 @@ const TAX_RATE = 0.08
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { items, subtotal, total, userId } = useCartStore()
+  const { items, subtotal, total } = useCartStore()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -45,7 +45,7 @@ export default function CheckoutPage() {
 
     setIsLoading(true)
     try {
-      const response = await createCheckoutSession(userId, formData)
+      const response = await createCheckoutSession(formData)
 
       if (response.checkout_url) {
         window.location.href = response.checkout_url

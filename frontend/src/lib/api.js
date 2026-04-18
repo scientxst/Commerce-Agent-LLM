@@ -1,4 +1,13 @@
+import useAuthStore from '../stores/authStore';
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || '';
+
+function authHeaders(extra = {}) {
+  const token = useAuthStore.getState().token;
+  return token
+    ? { ...extra, Authorization: `Bearer ${token}` }
+    : { ...extra };
+}
 
 export async function fetchProducts(category, limit = 20) {
   const params = new URLSearchParams();
@@ -13,40 +22,42 @@ export async function fetchProduct(productId) {
   return res.json();
 }
 
-export async function addToCart(userId, productId, quantity = 1, selectedSize, selectedColor) {
+export async function addToCart(productId, quantity = 1, selectedSize, selectedColor) {
   const res = await fetch(`${API_URL}/api/cart/add`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, product_id: productId, quantity, selected_size: selectedSize, selected_color: selectedColor }),
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ product_id: productId, quantity, selected_size: selectedSize, selected_color: selectedColor }),
   });
   return res.json();
 }
 
-export async function getCart(userId) {
-  const res = await fetch(`${API_URL}/api/cart/${userId}`);
+export async function getCart() {
+  const res = await fetch(`${API_URL}/api/cart/me`, { headers: authHeaders() });
   return res.json();
 }
 
-export async function removeFromCart(userId, productId) {
-  const res = await fetch(`${API_URL}/api/cart/${userId}/${productId}`, { method: 'DELETE' });
+export async function removeFromCart(productId) {
+  const res = await fetch(`${API_URL}/api/cart/me/${productId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
   return res.json();
 }
 
-export async function updateCartQuantity(userId, productId, quantity) {
-  const res = await fetch(`${API_URL}/api/cart/${userId}/${productId}`, {
+export async function updateCartQuantity(productId, quantity) {
+  const res = await fetch(`${API_URL}/api/cart/me/${productId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ quantity }),
   });
   return res.json();
 }
 
-export async function createCheckoutSession(userId, shippingInfo = {}) {
+export async function createCheckoutSession(shippingInfo = {}) {
   const res = await fetch(`${API_URL}/api/checkout/create-session`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
-      user_id: userId,
       shipping_name: shippingInfo.name || '',
       shipping_address: shippingInfo.address || '',
       shipping_city: shippingInfo.city || '',
@@ -57,11 +68,11 @@ export async function createCheckoutSession(userId, shippingInfo = {}) {
   return res.json();
 }
 
-export async function sendChatMessage(userId, sessionId, message) {
+export async function sendChatMessage(sessionId, message) {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, session_id: sessionId, message }),
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ session_id: sessionId, message }),
   });
   return res.json();
 }

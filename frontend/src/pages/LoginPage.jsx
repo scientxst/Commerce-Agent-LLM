@@ -69,9 +69,13 @@ function SignInModal({ onClose }) {
     } finally { setOauthLoading(null) }
   }
 
-  function handleGuest() {
-    continueAsGuest()
-    navigate('/', { replace: true })
+  async function handleGuest() {
+    try {
+      await continueAsGuest()
+      navigate('/', { replace: true })
+    } catch (err) {
+      setOauthError(err.message || 'Could not start guest session')
+    }
   }
 
   async function handleEmailSubmit(e) {
@@ -702,12 +706,17 @@ export default function LoginPage() {
   const { continueAsGuest } = useAuthStore()
   const navigate = useNavigate()
 
-  function handleSearchSubmit() {
+  async function handleSearchSubmit() {
     if (!searchQuery.trim()) return
     sessionStorage.setItem('pendingQuery', searchQuery.trim())
     sessionStorage.setItem('pendingCategory', activeTab.toLowerCase())
-    continueAsGuest()
-    navigate('/', { replace: true })
+    try {
+      await continueAsGuest()
+      navigate('/', { replace: true })
+    } catch {
+      sessionStorage.removeItem('pendingQuery')
+      sessionStorage.removeItem('pendingCategory')
+    }
   }
 
   return (

@@ -1,6 +1,7 @@
 """Tool execution — dispatches tool calls from the ReAct loop."""
 import json
 import logging
+import uuid
 from typing import Dict, Any, Optional, List
 
 from app.models.schemas import Product, CartResponse, CartItem, CartItemDetail, CartSummary
@@ -45,8 +46,12 @@ class ToolExecutor:
                     serialized = json.dumps(result, default=str)
             return serialized
         except Exception as exc:
-            log.error("Tool %s failed: %s", tool_name, exc)
-            return json.dumps({"error": str(exc)})
+            correlation_id = uuid.uuid4().hex[:12]
+            log.error("Tool %s failed [corr=%s]: %s", tool_name, correlation_id, exc)
+            return json.dumps({
+                "error": "Tool execution failed.",
+                "correlation_id": correlation_id,
+            })
 
     async def _search_products(self, args: Dict, user_id: str, category: Optional[str] = None, **kwargs) -> Any:
         """
@@ -123,7 +128,12 @@ class ToolExecutor:
 
         cart = await self.user_db.add_to_cart(
             user_id=user_id,
-            item=CartItem(product_id=product_id, quantity=quantity),
+            item=CartItem(
+                product_id=product_id,
+                quantity=quantity,
+                selected_size=args.get("selected_size"),
+                selected_color=args.get("selected_color"),
+            ),
         )
         total = await self._calculate_cart_total(cart)
         return {

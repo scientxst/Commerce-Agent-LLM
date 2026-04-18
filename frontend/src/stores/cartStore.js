@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as api from '../lib/api';
 
-const useCartStore = create((set, get) => ({
+const useCartStore = create((set) => ({
   items: [],
   subtotal: 0,
   tax: 0,
@@ -9,14 +9,13 @@ const useCartStore = create((set, get) => ({
   itemCount: 0,
   merchants: [],
   isOpen: false,
-  userId: 'user_' + Math.random().toString(36).substr(2, 9),
 
   toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
   openCart: () => set({ isOpen: true }),
   closeCart: () => set({ isOpen: false }),
 
   refreshCart: async () => {
-    const data = await api.getCart(get().userId);
+    const data = await api.getCart();
     set({
       items: data.items || [],
       subtotal: data.subtotal || 0,
@@ -28,7 +27,7 @@ const useCartStore = create((set, get) => ({
   },
 
   addItem: async (productId, quantity, selectedSize, selectedColor) => {
-    const data = await api.addToCart(get().userId, productId, quantity, selectedSize, selectedColor);
+    const data = await api.addToCart(productId, quantity, selectedSize, selectedColor);
     set({
       items: data.items || [],
       subtotal: data.subtotal || 0,
@@ -40,7 +39,7 @@ const useCartStore = create((set, get) => ({
   },
 
   removeItem: async (productId) => {
-    const data = await api.removeFromCart(get().userId, productId);
+    const data = await api.removeFromCart(productId);
     set({
       items: data.items || [],
       subtotal: data.subtotal || 0,
@@ -52,7 +51,7 @@ const useCartStore = create((set, get) => ({
   },
 
   updateQuantity: async (productId, quantity) => {
-    const data = await api.updateCartQuantity(get().userId, productId, quantity);
+    const data = await api.updateCartQuantity(productId, quantity);
     set({
       items: data.items || [],
       subtotal: data.subtotal || 0,

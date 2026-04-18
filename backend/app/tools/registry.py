@@ -64,6 +64,14 @@ TOOL_DEFINITIONS = [
                         "description": "Number of items (default 1)",
                         "default": 1,
                     },
+                    "selected_size": {
+                        "type": "string",
+                        "description": "Selected size (e.g. 'M', '10', 'Large')",
+                    },
+                    "selected_color": {
+                        "type": "string",
+                        "description": "Selected color (e.g. 'Red', 'Black')",
+                    },
                 },
                 "required": ["product_id"],
             },
