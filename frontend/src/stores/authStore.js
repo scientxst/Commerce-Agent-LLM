@@ -8,14 +8,26 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 async function apiPost(path, body, token) {
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.detail || 'Request failed')
-  return data
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.detail || 'Request failed')
+    return data
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Server did not respond in time. Please try again.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 // OAuth2PasswordRequestForm expects form-encoded, not JSON

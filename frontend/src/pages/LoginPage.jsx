@@ -703,19 +703,30 @@ export default function LoginPage() {
   const [activeModal, setActiveModal] = useState(null) // 'features' | 'pricing' | 'about'
   const [activeTab, setActiveTab] = useState('Tech')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchError, setSearchError] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
   const { continueAsGuest } = useAuthStore()
   const navigate = useNavigate()
 
   async function handleSearchSubmit() {
-    if (!searchQuery.trim()) return
+    if (!searchQuery.trim() || searchLoading) return
+    setSearchError('')
+    setSearchLoading(true)
     sessionStorage.setItem('pendingQuery', searchQuery.trim())
     sessionStorage.setItem('pendingCategory', activeTab.toLowerCase())
     try {
       await continueAsGuest()
       navigate('/', { replace: true })
-    } catch {
+    } catch (err) {
       sessionStorage.removeItem('pendingQuery')
       sessionStorage.removeItem('pendingCategory')
+      setSearchError(
+        err.message === 'Failed to fetch'
+          ? 'Could not connect to the server. Please try again later.'
+          : err.message || 'Something went wrong. Please try again.'
+      )
+    } finally {
+      setSearchLoading(false)
     }
   }
 
@@ -854,10 +865,17 @@ export default function LoginPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit() }}
-              className="flex-1 bg-transparent border-none outline-none text-base"
+              disabled={searchLoading}
+              className="flex-1 bg-transparent border-none outline-none text-base disabled:opacity-50"
               style={{ color: 'rgba(255,255,255,0.85)', caretColor: 'rgba(0,210,235,0.9)' }}
             />
-            {searchQuery.trim() && (
+            {searchLoading ? (
+              <div className="shrink-0 p-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(0,210,235,0.9)" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
+              </div>
+            ) : searchQuery.trim() && (
               <button
                 onClick={handleSearchSubmit}
                 className="shrink-0 p-2 rounded-xl transition-colors"
@@ -869,6 +887,19 @@ export default function LoginPage() {
               </button>
             )}
           </div>
+
+          {searchError && (
+            <div
+              className="mt-3 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2"
+              style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: 'rgba(248,113,113,0.9)' }}
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{searchError}</span>
+              <button onClick={() => setSearchError('')} className="ml-auto opacity-60 hover:opacity-100">×</button>
+            </div>
+          )}
         </div>
 
         {/* Tagline */}
