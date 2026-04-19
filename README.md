@@ -51,64 +51,82 @@ A production-ready AI shopping assistant built with GPT-4, RAG (Retrieval-Augmen
 
 ### Prerequisites
 
-- Python 3.9+
-- Node.js 16+
-- Docker and Docker Compose
-- OpenAI API key
+- Python 3.10+
+- Node.js 18+
+- An OpenAI API key (https://platform.openai.com/api-keys)
+- (Optional) Stripe test keys for the checkout demo (https://dashboard.stripe.com/test/apikeys)
+- (Optional) Docker — only needed if you want to run Milvus/Redis locally; the app falls back to an in-memory vector cache + sample-product data if neither is available, so Docker is **not required for the demo**.
 
 ### 1. Clone and Setup
 
 ```bash
-cd ai-shopping-assistant
+git clone https://github.com/scientxst/Commerce-Agent-LLM.git
+cd Commerce-Agent-LLM
 
 # Copy environment file
 cp .env.example .env
 
-# Edit .env and add your OpenAI API key
-nano .env  # or use your preferred editor
+# Edit .env. At minimum you must set:
+#   OPENAI_API_KEY=sk-proj-...
+#   JWT_SECRET=any-long-random-string
+# For the checkout demo, also set:
+#   STRIPE_SECRET_KEY=sk_test_...
+#   STRIPE_WEBHOOK_SECRET=whsec_...    (from `stripe listen`)
+# All other keys in .env.example are optional — the app degrades gracefully.
+open -e .env    # macOS — opens in TextEdit. Or use nano / vim / VS Code.
 ```
 
-### 2. Start Infrastructure (Milvus & Redis)
-
-```bash
-docker-compose up -d
-
-# Wait for services to be ready (30-60 seconds)
-docker-compose ps
-```
-
-### 3. Install Backend Dependencies
+### 2. Install Backend Dependencies
 
 ```bash
 cd backend
-pip install -r requirements.txt
+pip3 install -r requirements.txt
+# If you see "externally-managed-environment" on macOS Homebrew Python, use:
+#   pip3 install --break-system-packages -r requirements.txt
+cd ..
 ```
 
-### 4. Start Backend Server
+### 3. Start Backend Server
 
 ```bash
-# From backend directory
-python -m app.main
+cd backend
+python3 -m uvicorn app.main:app --reload --port 8000
 
-# Server will start on http://localhost:8000
-# API docs available at http://localhost:8000/docs
+# Server starts on http://localhost:8000
+# Interactive API docs at http://localhost:8000/docs
+# Look for: "Ready — 96 products indexed"
 ```
 
-The backend will:
-- Connect to Milvus
-- Load sample products
-- Generate embeddings
+On first start the backend will:
+- Load sample products from `data/sample_products.json`
+- Generate (or load cached) embeddings
 - Initialize all services
 
-### 5. Install and Start Frontend
+### 4. Install and Start Frontend
 
 ```bash
-# Open new terminal
+# In a NEW terminal window — leave the backend running
 cd frontend
 npm install
-npm start
+npm run dev
 
-# Frontend will open at http://localhost:3000
+# Frontend serves at http://localhost:3000
+```
+
+### 5. (Optional) Stripe webhook listener for checkout demo
+
+```bash
+# Install once
+brew install stripe/stripe-cli/stripe
+
+# Pair the CLI to your Stripe account (browser opens)
+stripe login
+
+# In a third terminal — leave it running while you test checkout
+stripe listen --forward-to localhost:8000/api/checkout/webhook
+
+# Copy the printed `whsec_...` value into STRIPE_WEBHOOK_SECRET in .env
+# and restart the backend so it picks up the new secret.
 ```
 
 ##Usage
@@ -176,24 +194,33 @@ ai-shopping-assistant/
 
 ### Environment Variables
 
+The full list lives in [`.env.example`](.env.example). The minimum needed to start the app:
+
 ```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_key_here
-LLM_MODEL=gpt-4-turbo-preview
+# OpenAI — required
+OPENAI_API_KEY=sk-proj-...
+LLM_MODEL=gpt-4o-mini
 EMBEDDING_MODEL=text-embedding-3-small
 
-# Milvus Configuration
-MILVUS_HOST=localhost
-MILVUS_PORT=19530
+# Auth — required (any long random string for local dev)
+JWT_SECRET=change-me-to-a-long-random-string
 
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# Stripe — required ONLY if demoing checkout
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# OAuth providers — optional, leave blank to disable Google/Microsoft sign-in
+GOOGLE_CLIENT_ID=
+MICROSOFT_CLIENT_ID=
 
 # Application
 MAX_CONTEXT_TOKENS=8000
+MAX_REACT_ITERATIONS=5
+TAX_RATE=0.08
 ENVIRONMENT=development
 ```
+
+External product-search APIs (RapidAPI, SerpAPI, Rainforest, ScraperAPI, etc.) are all optional — without them the app uses sample product data. See `.env.example` for the full list.
 
 ## Key Features Explained
 
